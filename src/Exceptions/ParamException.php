@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrden\Fork\exception;
+namespace Mrden\Fork\Exceptions;
 
 class ParamException extends ForkException
 {

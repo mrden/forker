@@ -2,7 +2,7 @@
 
 namespace Mrden\Fork;
 
-use Mrden\Fork\exception\ForkException;
+use Mrden\Fork\Exceptions\ForkException;
 
 class Forker
 {
@@ -20,14 +20,14 @@ class Forker
     /**
      * @throws ForkException
      */
-    public function run(int $count = 1, bool $reRun = false): void
+    public function run(int $count = 1): void
     {
         \pcntl_signal(SIGCHLD, SIG_IGN);
         if ($count > $this->process->getMaxChildProcess()) {
             $count = $this->process->getMaxChildProcess();
         }
         for ($number = 1; $number <= $count; $number++) {
-            $this->runItem($number, $reRun);
+            $this->runItem($number);
         }
     }
 
@@ -50,14 +50,9 @@ class Forker
     /**
      * @throws ForkException
      */
-    private function runItem(int $number, bool $reRun = false): void
+    private function runItem(int $number): void
     {
-        if (!$reRun && $this->isRunning($number)) {
-            return;
-        }
-        if ($reRun) {
-            $this->stop($number);
-            $this->runItem($number);
+        if ($this->isRunning($number)) {
             return;
         }
         $pid = \pcntl_fork();
@@ -70,16 +65,17 @@ class Forker
                 ));
             case 0:
                 // Child process logic
-                cli_set_process_title(sprintf(
-                    'Fork process %s, instance %d',
-                    $this->title(),
-                    $number
-                ));
                 if ($this->process->getParentProcess()) {
                     $this->process->getParentProcess()->isParent(true);
                 }
+                cli_set_process_title(sprintf(
+                    '%s (%d)',
+                    $this->title(),
+                    $number
+                ));
                 $this->registerSignalHandlers();
                 \register_shutdown_function([$this, 'shutdownHandler'], $number);
+                $this->process->cloneNumber($number);
                 $this->process->pidStorage()->save(\getmypid(), $number);
                 $this->process->prepare();
                 $this->process->execute();
@@ -94,11 +90,31 @@ class Forker
     private function title(?ProcessInterface $process = null): string
     {
         $process = $process ?? $this->process;
-        $title = get_class($process);
+        if ($process->isParent()) {
+            $title = 'parent pid ' . \posix_getppid();
+        } else {
+            $title = \get_class($process) .
+                ($process->getParams() ? ' ' . $this->paramToString($process->getParams()) : '');
+        }
         if ($process->getParentProcess()) {
             $title = $this->title($process->getParentProcess()) . ' > ' . $title;
         }
         return $title;
+    }
+
+    private function paramToString(array $params): string
+    {
+        foreach ($params as &$param) {
+            if (\mb_strwidth($param) > 25) {
+                $param = \mb_strimwidth($param, 0, 10, '...') . \mb_substr($param, -15);
+            }
+        }
+
+        return '[' . trim(str_replace(
+            ['array (', ')'],
+            '',
+            var_export($params, true)
+        ), " \t\n\r,") . ']';
     }
 
     private function registerSignalHandlers()

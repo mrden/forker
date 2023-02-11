@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrden\Fork\storage;
+namespace Mrden\Fork\Storage;
 
 use Mrden\Fork\ProcessInterface;
 

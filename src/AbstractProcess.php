@@ -2,7 +2,7 @@
 
 namespace Mrden\Fork;
 
-use Mrden\Fork\exception\ParamException;
+use Mrden\Fork\Exceptions\ParamException;
 
 abstract class AbstractProcess implements ProcessInterface
 {
@@ -11,6 +11,7 @@ abstract class AbstractProcess implements ProcessInterface
 
     protected $params;
     protected $parentProcess;
+    protected $cloneNumber;
 
     /**
      * @throws ParamException
@@ -19,6 +20,7 @@ abstract class AbstractProcess implements ProcessInterface
     {
         $this->params = $params;
         $this->parentProcess = $parentProcess;
+        $this->cloneNumber = 1;
         $this->checkParams();
     }
 
@@ -44,6 +46,25 @@ abstract class AbstractProcess implements ProcessInterface
         }
         $this->isParent = $isParent;
         return $isParent;
+    }
+    public function cloneNumber(?int $number = null): int
+    {
+        if ($number === null) {
+            return $this->cloneNumber;
+        }
+        $this->cloneNumber = $number;
+        return $number;
+    }
+
+    /**
+     * @throws ParamException
+     */
+    protected function paramException(string $message): void
+    {
+        if ($this->getParentProcess()) {
+            throw new ParamException(static::class . ': ' . $message);
+        }
+        throw new ParamException($message);
     }
 
     /**

@@ -14,6 +14,8 @@
     "ext-pcntl": "*",
     "ext-posix": "*",
     "ext-intl": "*",
+    "ext-json": "*",
+    "ext-mbstring": "*",
     "ramsey/uuid": "3.*"
   },
   "require-dev": {

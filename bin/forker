@@ -7,8 +7,6 @@
 // php forker --process="..." --process-param1="param1" --process-param2=2
 // php forker --process="..." --count=5 ...
 
-declare(ticks = 1);
-
 // Detect autoload location
 $autoload = [
     __DIR__ . '/../vendor/autoload.php', // The forker located in development.
@@ -21,20 +19,20 @@ $includes = [
     __DIR__ . '/../mrden/forker',
 ];
 $includePath = false;
-for ($i = 0; $i < count($autoload); $i++) {
-    if (file_exists($autoload[$i]) && is_dir($includes[$i])) {
+for ($i = 0; $i < \count($autoload); $i++) {
+    if (\file_exists($autoload[$i]) && \is_dir($includes[$i])) {
         require $autoload[$i];
         $includePath = $includes[$i];
         break;
     }
 }
 if (empty($includePath)) {
-    fwrite(STDERR, "Error: The `autoload.php` file not found in:" . PHP_EOL);
-    for ($i = 0; $i < count($autoload); $i++) {
-        $a = file_exists($autoload[$i]) ? 'true' : 'false';
-        $b = is_dir($includes[$i]) ? 'true' : 'false';
-        fwrite(STDERR, "  - file_exists($autoload[$i]) = $a" . PHP_EOL);
-        fwrite(STDERR, "    is_dir($includes[$i]) = $b") . PHP_EOL;
+    \fwrite(\STDERR, "Error: The `autoload.php` file not found in:" . PHP_EOL);
+    for ($i = 0; $i < \count($autoload); $i++) {
+        $a = \file_exists($autoload[$i]) ? 'true' : 'false';
+        $b = \is_dir($includes[$i]) ? 'true' : 'false';
+        \fwrite(\STDERR, "  - file_exists($autoload[$i]) = $a" . PHP_EOL);
+        \fwrite(\STDERR, "    is_dir($includes[$i]) = $b") . PHP_EOL;
     }
     exit(1);
 }
@@ -44,30 +42,30 @@ $count = 1;
 $restart = false;
 $stop = false;
 foreach ($argv as $i => $arg) {
-    if (preg_match('/^--process=(?<process>.+)$/', $arg, $match)) {
+    if (\preg_match('/^--process=(?<process>.+)$/', $arg, $match)) {
         $processClassName = $match['process'];
     }
-    if (preg_match('/^--process-(?<key>.+)=(?<value>.+)$/', $arg, $match)) {
+    if (\preg_match('/^--process-(?<key>.+)=(?<value>.+)$/', $arg, $match)) {
         $processParams[$match['key']] = $match['value'];
     }
-    if (preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
+    if (\preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
         $stop = in_array($match['value'], [1, '1', 'true']);
     }
-    if (preg_match('/^--restart=(?<value>.+)$/', $arg, $match)) {
+    if (\preg_match('/^--restart=(?<value>.+)$/', $arg, $match)) {
         $restart = in_array($match['value'], [1, '1', 'true']);
     }
-    if (preg_match('/^--count=(?<value>.+)$/', $arg, $match)) {
+    if (\preg_match('/^--count=(?<value>.+)$/', $arg, $match)) {
         $count = (int)$match['value'];
     }
 }
 
 if (!$count) {
-    fwrite(STDERR, "Error: Incorrect count value \"$count\"." . PHP_EOL);
+    \fwrite(\STDERR, "Error: Incorrect count value \"$count\"." . PHP_EOL);
     exit(1);
 }
 
 if (!$processClassName || !\class_exists($processClassName)) {
-    fwrite(STDERR, "Error: The process $processClassName not exists." . PHP_EOL);
+    \fwrite(\STDERR, "Error: The process $processClassName not found." . PHP_EOL);
     exit(1);
 }
 /**
@@ -75,8 +73,8 @@ if (!$processClassName || !\class_exists($processClassName)) {
  */
 try {
     $process = new $processClassName($processParams);
-} catch (\Mrden\Fork\exception\ParamException $e) {
-    fwrite(STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
+} catch (\Mrden\Fork\Exceptions\ParamException $e) {
+    \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
     exit(1);
 }
 
@@ -85,9 +83,9 @@ if ($stop) {
     $forker->stop();
 } else {
     try {
-        $forker->run($count, $restart);
-    } catch (\Mrden\Fork\exception\ForkException $e) {
-        fwrite(STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
+        $forker->run($count);
+    } catch (\Mrden\Fork\Exceptions\ForkException $e) {
+        \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
         exit(1);
     }
 }
