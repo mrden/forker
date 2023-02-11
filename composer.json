@@ -1,0 +1,45 @@
+{
+  "name": "mrden/forker",
+  "description": "Форкер процессов",
+  "type": "library",
+  "version": "0.1.0",
+  "keywords": [
+    "forker",
+    "fork",
+    "process"
+  ],
+  "license": "MIT",
+  "require": {
+    "php": "^7.3 || ^8.0",
+    "ext-pcntl": "*",
+    "ext-posix": "*",
+    "ext-intl": "*",
+    "ramsey/uuid": "3.*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9",
+    "psr/log": "1.1.*"
+  },
+  "authors": [
+    {
+      "name": "Denis Kiselev",
+      "email": "kiselevden911@yandex.ru"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Mrden\\Fork\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "bin": [
+    "bin/forker"
+  ],
+  "config": {
+    "sort-packages": true
+  }
+}
