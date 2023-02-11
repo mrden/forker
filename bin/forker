@@ -2,7 +2,6 @@
 <?php
 
 // php forker --process="..."
-// php forker --process="..." --restart=1
 // php forker --process="..." --stop=1
 // php forker --process="..." --process-param1="param1" --process-param2=2
 // php forker --process="..." --count=5 ...
@@ -39,7 +38,6 @@ if (empty($includePath)) {
 $processClassName = '';
 $processParams = [];
 $count = 1;
-$restart = false;
 $stop = false;
 foreach ($argv as $i => $arg) {
     if (\preg_match('/^--process=(?<process>.+)$/', $arg, $match)) {
@@ -50,9 +48,6 @@ foreach ($argv as $i => $arg) {
     }
     if (\preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
         $stop = in_array($match['value'], [1, '1', 'true']);
-    }
-    if (\preg_match('/^--restart=(?<value>.+)$/', $arg, $match)) {
-        $restart = in_array($match['value'], [1, '1', 'true']);
     }
     if (\preg_match('/^--count=(?<value>.+)$/', $arg, $match)) {
         $count = (int)$match['value'];
