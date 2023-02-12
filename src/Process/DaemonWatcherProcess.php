@@ -5,8 +5,10 @@ namespace Mrden\Fork\Process;
 use Mrden\Fork\Forker;
 use Mrden\Fork\ProcessInterface;
 
-class DaemonWatcherProcess extends DaemonProcess
+abstract class DaemonWatcherProcess extends DaemonProcess
 {
+    protected $maxCloneProcessCount = 1;
+
     /**
      * @var array
      */
@@ -67,9 +69,5 @@ class DaemonWatcherProcess extends DaemonProcess
         if ($afterStop !== null) {
             $this->afterStopHandlers[] = $afterStop;
         }
-    }
-
-    public function prepare(): void
-    {
     }
 }

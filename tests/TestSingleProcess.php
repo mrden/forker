@@ -2,6 +2,8 @@
 
 namespace Tests;
 
+use Mrden\Fork\ProcessPidStorageInterface;
+use Mrden\Fork\Storage\FileStorage;
 use Mrden\Fork\Traits\ProcessFileStorageTrait;
 
 class TestSingleProcess extends \Mrden\Fork\AbstractProcess
@@ -14,7 +16,7 @@ class TestSingleProcess extends \Mrden\Fork\AbstractProcess
     {
     }
 
-    public function execute(): void
+    public function execute(int $number): void
     {
         sleep(11);
     }
@@ -23,7 +25,11 @@ class TestSingleProcess extends \Mrden\Fork\AbstractProcess
     {
     }
 
-    public function prepare(): void
+    public function pidStorage(): ProcessPidStorageInterface
     {
+        if (!isset($this->pidStorage)) {
+            $this->pidStorage = new FileStorage($this, __DIR__ . '/storage');
+        }
+        return $this->pidStorage;
     }
 }

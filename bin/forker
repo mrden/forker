@@ -50,38 +50,34 @@ foreach ($argv as $i => $arg) {
         $stop = in_array($match['value'], [1, '1', 'true']);
     }
     if (\preg_match('/^--count=(?<value>.+)$/', $arg, $match)) {
-        $count = (int)$match['value'];
+        $count = $match['value'];
     }
-}
-
-if (!$count) {
-    \fwrite(\STDERR, "Error: Incorrect count value \"$count\"." . PHP_EOL);
-    exit(1);
 }
 
 if (!$processClassName || !\class_exists($processClassName)) {
-    \fwrite(\STDERR, "Error: The process $processClassName not found." . PHP_EOL);
+    \fwrite(\STDERR, "Error: The --process \"$processClassName\" not found." . PHP_EOL);
     exit(1);
 }
+
+if (!\is_numeric($count) || !$count) {
+    \fwrite(\STDERR, "Error: Incorrect --count value \"$count\"." . PHP_EOL);
+    exit(1);
+}
+
+$count = (int)$count;
+
 /**
- * @var $process \Mrden\Fork\AbstractProcess
+ * @var $process \Mrden\Fork\ProcessInterface
  */
 try {
     $process = new $processClassName($processParams);
-} catch (\Mrden\Fork\Exceptions\ParamException $e) {
+    $forker = new \Mrden\Fork\Forker($process);
+    if ($stop) {
+        $forker->stop();
+    } else {
+		$forker->run($count);
+	}
+} catch (\Mrden\Fork\Exceptions\ForkException $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
     exit(1);
 }
-
-$forker = new \Mrden\Fork\Forker($process);
-if ($stop) {
-    $forker->stop();
-} else {
-    try {
-        $forker->run($count);
-    } catch (\Mrden\Fork\Exceptions\ForkException $e) {
-        \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
-        exit(1);
-    }
-}
-

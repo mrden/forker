@@ -40,8 +40,9 @@ class FileStorage extends AbstractStorageProcess
 
     private function fileName(int $number): string
     {
-        $dir = \rtrim($this->dirname, DIRECTORY_SEPARATOR) . '/' .  $this->slugify($this->processUid) . '/';
+        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->processUid) . '/';
         if (!\file_exists($dir)) {
+            fwrite(\STDOUT, 'dir - ' . $dir . PHP_EOL);
             \mkdir($dir, 0775, true);
         }
         return $dir . $number . '.pid';

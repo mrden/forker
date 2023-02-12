@@ -2,7 +2,6 @@
 
 namespace Mrden\Fork\Process;
 
-use Mrden\Fork\Traits\ProcessExecutingTrait;
 use Mrden\Fork\Traits\ProcessFileStorageTrait;
 
 abstract class DaemonProcess extends \Mrden\Fork\AbstractProcess
@@ -28,7 +27,7 @@ abstract class DaemonProcess extends \Mrden\Fork\AbstractProcess
         }
     }
 
-    public function execute(): void
+    public function execute(int $number): void
     {
         while ($this->executing) {
             $this->job();

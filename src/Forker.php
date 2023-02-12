@@ -23,8 +23,8 @@ class Forker
     public function run(int $count = 1): void
     {
         \pcntl_signal(SIGCHLD, SIG_IGN);
-        if ($count > $this->process->getMaxChildProcess()) {
-            $count = $this->process->getMaxChildProcess();
+        if ($count > $this->process->getMaxCloneProcessCount()) {
+            $count = $this->process->getMaxCloneProcessCount();
         }
         for ($number = 1; $number <= $count; $number++) {
             $this->runItem($number);
@@ -34,7 +34,7 @@ class Forker
     public function stop(int $number = null): bool
     {
         if ($number === null) {
-            for ($i = 1; $i <= $this->process->getMaxChildProcess(); $i++) {
+            for ($i = 1; $i <= $this->process->getMaxCloneProcessCount(); $i++) {
                 $this->stop($i);
             }
             return true;
@@ -65,56 +65,18 @@ class Forker
                 ));
             case 0:
                 // Child process logic
-                if ($this->process->getParentProcess()) {
-                    $this->process->getParentProcess()->isParent(true);
-                }
-                cli_set_process_title(sprintf(
-                    '%s (%d)',
-                    $this->title(),
-                    $number
-                ));
                 $this->registerSignalHandlers();
                 \register_shutdown_function([$this, 'shutdownHandler'], $number);
                 $this->process->cloneNumber($number);
                 $this->process->pidStorage()->save(\getmypid(), $number);
-                $this->process->prepare();
-                $this->process->execute();
+                $this->process->prepare($number);
+                $this->process->execute($number);
                 // Exit child process
                 exit;
             default:
                 // Parent process logic
                 break;
         }
-    }
-
-    private function title(?ProcessInterface $process = null): string
-    {
-        $process = $process ?? $this->process;
-        if ($process->isParent()) {
-            $title = 'parent pid ' . \posix_getppid();
-        } else {
-            $title = \get_class($process) .
-                ($process->getParams() ? ' ' . $this->paramToString($process->getParams()) : '');
-        }
-        if ($process->getParentProcess()) {
-            $title = $this->title($process->getParentProcess()) . ' > ' . $title;
-        }
-        return $title;
-    }
-
-    private function paramToString(array $params): string
-    {
-        foreach ($params as &$param) {
-            if (\mb_strwidth($param) > 25) {
-                $param = \mb_strimwidth($param, 0, 10, '...') . \mb_substr($param, -15);
-            }
-        }
-
-        return '[' . trim(str_replace(
-            ['array (', ')'],
-            '',
-            var_export($params, true)
-        ), " \t\n\r,") . ']';
     }
 
     private function registerSignalHandlers()

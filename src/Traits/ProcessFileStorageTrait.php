@@ -10,7 +10,7 @@ trait ProcessFileStorageTrait
     /**
      * @var FileStorage
      */
-    private $pidStorage;
+    protected $pidStorage;
 
     public function pidStorage(): ProcessPidStorageInterface
     {
