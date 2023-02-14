@@ -4,7 +4,7 @@ namespace Mrden\Fork\Process;
 
 use Mrden\Fork\Traits\ProcessFileStorageTrait;
 
-abstract class DaemonProcess extends \Mrden\Fork\AbstractProcess
+abstract class DaemonProcess extends \Mrden\Fork\Process
 {
     use ProcessFileStorageTrait;
 
@@ -14,29 +14,19 @@ abstract class DaemonProcess extends \Mrden\Fork\AbstractProcess
     protected $period = 0.2;
 
     protected $executing = true;
-    /**
-     * @var callable[]
-     */
-    protected $afterStopHandlers = [];
 
-    public function stop(?callable $afterStop = null): void
+    public function stop(bool $terminate = false, ?callable $afterStop = null): void
     {
         $this->executing = false;
-        if ($afterStop !== null) {
-            $this->afterStopHandlers[] = $afterStop;
-        }
+        parent::stop($terminate, $afterStop);
     }
 
-    public function execute(int $number): void
+    public function execute(int $cloneNumber): void
     {
         while ($this->executing) {
             $this->job();
             \usleep($this->period * 1000000);
         }
-        foreach ($this->afterStopHandlers as $afterStopHandler) {
-            $afterStopHandler();
-        }
-
     }
 
     abstract protected function job(): void;

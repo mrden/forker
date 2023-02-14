@@ -2,18 +2,22 @@
 
 namespace Tests;
 
-use Mrden\Fork\ProcessPidStorageInterface;
-use Mrden\Fork\Storage\FileStorage;
+use Mrden\Fork\ProcessPidStorage;
+use Mrden\Fork\Storage\FilePidStorage;
 
 class TestDaemonWatcherProcess extends \Mrden\Fork\Process\DaemonWatcherProcess
 {
-    protected $period = 30;
+    protected $period = 1;
 
-    public function pidStorage(): ProcessPidStorageInterface
+    public function pidStorage(): ProcessPidStorage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FileStorage($this, __DIR__ . '/storage');
+            $this->pidStorage = new FilePidStorage($this, __DIR__ . '/storage');
         }
         return $this->pidStorage;
+    }
+
+    protected function prepare(int $cloneNumber): void
+    {
     }
 }

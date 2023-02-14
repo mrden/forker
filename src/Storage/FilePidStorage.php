@@ -2,9 +2,10 @@
 
 namespace Mrden\Fork\Storage;
 
+use Mrden\Fork\ProcessPidStorage;
 use Mrden\Fork\ProcessInterface;
 
-class FileStorage extends AbstractStorageProcess
+final class FilePidStorage extends ProcessPidStorage
 {
     /**
      * @var string
@@ -19,33 +20,32 @@ class FileStorage extends AbstractStorageProcess
         parent::__construct($process);
     }
 
-    public function get(int $number): int
+    public function get(int $cloneNumber): int
     {
-        return (int)@\file_get_contents($this->fileName($number));
+        return (int)@\file_get_contents($this->fileName($cloneNumber));
     }
 
-    public function remove(int $number): void
+    public function remove(int $cloneNumber): void
     {
-        $file = $this->fileName($number);
+        $file = $this->fileName($cloneNumber);
         if (\file_exists($file)) {
             \unlink($file);
         }
     }
 
-    public function save(int $pid, int $number): void
+    public function save(int $pid, int $cloneNumber): void
     {
-        $fileName = $this->fileName($number);
+        $fileName = $this->fileName($cloneNumber);
         \file_put_contents($fileName, $pid);
     }
 
-    private function fileName(int $number): string
+    private function fileName(int $cloneNumber): string
     {
         $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->processUid) . '/';
         if (!\file_exists($dir)) {
-            fwrite(\STDOUT, 'dir - ' . $dir . PHP_EOL);
             \mkdir($dir, 0775, true);
         }
-        return $dir . $number . '.pid';
+        return $dir . $cloneNumber . '.pid';
     }
 
     private function slugify(string $string): string

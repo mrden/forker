@@ -4,7 +4,7 @@ namespace Mrden\Fork;
 
 use Mrden\Fork\Exceptions\ForkException;
 
-class Forker
+final class Forker
 {
     /**
      * @var ProcessInterface
@@ -22,7 +22,7 @@ class Forker
      */
     public function run(int $count = 1): void
     {
-        \pcntl_signal(SIGCHLD, SIG_IGN);
+        \pcntl_signal(\SIGCHLD, \SIG_IGN);
         if ($count > $this->process->getMaxCloneProcessCount()) {
             $count = $this->process->getMaxCloneProcessCount();
         }
@@ -39,9 +39,9 @@ class Forker
             }
             return true;
         } else {
-            $currentPid = $this->process->pidStorage()->get($number);
+            $currentPid = $this->process->getPid($number);
             if ($currentPid > 0) {
-                return \posix_kill($currentPid, SIGTERM);
+                return \posix_kill($currentPid, \SIGUSR1);
             }
         }
         return false;
@@ -52,7 +52,8 @@ class Forker
      */
     private function runItem(int $number): void
     {
-        if ($this->isRunning($number)) {
+        // is running
+        if ($this->process->getPid($number)) {
             return;
         }
         $pid = \pcntl_fork();
@@ -65,39 +66,11 @@ class Forker
                 ));
             case 0:
                 // Child process logic
-                $this->registerSignalHandlers();
-                \register_shutdown_function([$this, 'shutdownHandler'], $number);
-                $this->process->cloneNumber($number);
-                $this->process->pidStorage()->save(\getmypid(), $number);
-                $this->process->prepare($number);
-                $this->process->execute($number);
-                // Exit child process
+                $this->process->run($number);
                 exit;
             default:
                 // Parent process logic
                 break;
         }
-    }
-
-    private function registerSignalHandlers()
-    {
-        \pcntl_signal(SIGTERM, [$this, 'termProcess']);
-    }
-
-    public function termProcess(int $signo): void
-    {
-        $this->process->stop();
-    }
-
-    public function shutdownHandler(int $number): void
-    {
-        if (!$this->process->isParent()) {
-            $this->process->pidStorage()->remove($number);
-        }
-    }
-
-    private function isRunning(int $number): bool
-    {
-        return (bool)$this->process->pidStorage()->get($number);
     }
 }

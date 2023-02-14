@@ -44,7 +44,16 @@ foreach ($argv as $i => $arg) {
         $processClassName = $match['process'];
     }
     if (\preg_match('/^--process-(?<key>.+)=(?<value>.+)$/', $arg, $match)) {
-        $processParams[$match['key']] = $match['value'];
+		$value = $match['value'];
+		if (ctype_digit($value)) {
+            $value = (int)$value;
+		} elseif (is_numeric($value)) {
+            $value = (float)$value;
+		} else {
+            $value = $value === 'false' ? false : $value;
+            $value = $value === 'true' ? true : $value;
+		}
+        $processParams[$match['key']] = $value;
     }
     if (\preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
         $stop = in_array($match['value'], [1, '1', 'true']);

@@ -2,9 +2,9 @@
 
 namespace Tests;
 
+use Mrden\Fork\ProcessPidStorage;
 use Mrden\Fork\Process\DaemonProcess;
-use Mrden\Fork\ProcessPidStorageInterface;
-use Mrden\Fork\Storage\FileStorage;
+use Mrden\Fork\Storage\FilePidStorage;
 use Mrden\Fork\Traits\ProcessFileStorageTrait;
 
 class TestDaemonProcess extends DaemonProcess
@@ -13,7 +13,7 @@ class TestDaemonProcess extends DaemonProcess
 
     protected $maxCloneProcessCount = 15;
     /**
-     * @var FileStorage
+     * @var FilePidStorage
      */
     private $pidStorages = [];
 
@@ -29,10 +29,14 @@ class TestDaemonProcess extends DaemonProcess
         }
     }
 
-    public function pidStorage(): ProcessPidStorageInterface
+    protected function prepare(int $cloneNumber): void
+    {
+    }
+
+    public function pidStorage(): ProcessPidStorage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FileStorage($this, __DIR__ . '/storage');
+            $this->pidStorage = new FilePidStorage($this, __DIR__ . '/storage');
         }
         return $this->pidStorage;
     }

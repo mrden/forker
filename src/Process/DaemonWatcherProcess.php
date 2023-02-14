@@ -7,12 +7,15 @@ use Mrden\Fork\ProcessInterface;
 
 abstract class DaemonWatcherProcess extends DaemonProcess
 {
-    protected $maxCloneProcessCount = 1;
-
     /**
      * @var array
      */
     protected $processes = [];
+
+    public function getMaxCloneProcessCount(): int
+    {
+        return 1;
+    }
 
     /**
      * @throws \Mrden\Fork\Exceptions\ForkException
@@ -57,17 +60,19 @@ abstract class DaemonWatcherProcess extends DaemonProcess
         $this->processes = $processes;
     }
 
-    public function stop(?callable $afterStop = null): void
+    public function stop(bool $terminate = false, ?callable $afterStop = null): void
     {
-        parent::stop(function () {
-            foreach ($this->processes as $process) {
-                $processObject = $this->createProcess($process);
-                $forker = new Forker($processObject);
-                $forker->stop();
+        parent::stop($terminate, function () use ($afterStop, $terminate) {
+            if (!$terminate) {
+                foreach ($this->processes as $process) {
+                    $processObject = $this->createProcess($process);
+                    $forker = new Forker($processObject);
+                    $forker->stop();
+                }
+            }
+            if ($afterStop !== null) {
+                $afterStop();
             }
         });
-        if ($afterStop !== null) {
-            $this->afterStopHandlers[] = $afterStop;
-        }
     }
 }
