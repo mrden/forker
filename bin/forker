@@ -37,7 +37,7 @@ if (empty($includePath)) {
 }
 $processClassName = '';
 $processParams = [];
-$count = 1;
+$count = null;
 $stop = false;
 foreach ($argv as $i => $arg) {
     if (\preg_match('/^--process=(?<process>.+)$/', $arg, $match)) {
@@ -63,6 +63,10 @@ foreach ($argv as $i => $arg) {
     }
 }
 
+if ($count === null) {
+    $count = $stop ? -1 : 1;
+}
+
 if (!$processClassName || !\class_exists($processClassName)) {
     \fwrite(\STDERR, "Error: The --process \"$processClassName\" not found." . PHP_EOL);
     exit(1);
@@ -82,7 +86,7 @@ try {
     $process = new $processClassName($processParams);
     $forker = new \Mrden\Fork\Forker($process);
     if ($stop) {
-        $forker->stop();
+        $forker->stop($count);
     } else {
 		$forker->run($count);
 	}

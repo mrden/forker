@@ -31,20 +31,24 @@ final class Forker
         }
     }
 
-    public function stop(int $number = null): bool
+    public function stop(int $count, int $number = null): void
     {
+        if ($count < 0 || $count > $this->process->getMaxCloneProcessCount()) {
+            $count = $this->process->getMaxCloneProcessCount();
+        }
         if ($number === null) {
-            for ($i = 1; $i <= $this->process->getMaxCloneProcessCount(); $i++) {
-                $this->stop($i);
+            for ($i = 1; $i <= $count; $i++) {
+                $this->stop($count, $i);
             }
-            return true;
         } else {
+            if ($number > $count) {
+                return;
+            }
             $currentPid = $this->process->getPid($number);
             if ($currentPid > 0) {
-                return \posix_kill($currentPid, \SIGUSR1);
+                \posix_kill($currentPid, \SIGUSR1);
             }
         }
-        return false;
     }
 
     /**
