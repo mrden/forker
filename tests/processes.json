@@ -1,0 +1,9 @@
+[
+  {
+    "process": "\\Tests\\TestDaemonProcess",
+    "params": {
+      "test-param": 5
+    },
+    "count": 5
+  }
+]
