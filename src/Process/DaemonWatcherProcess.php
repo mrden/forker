@@ -12,7 +12,7 @@ abstract class DaemonWatcherProcess extends DaemonProcess
      */
     protected $processes = [];
 
-    public function getMaxCloneProcessCount(): int
+    final public function getMaxCloneProcessCount(): int
     {
         return 1;
     }
