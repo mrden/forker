@@ -67,7 +67,7 @@ abstract class DaemonWatcherProcess extends DaemonProcess
                 foreach ($this->processes as $process) {
                     $processObject = $this->createProcess($process);
                     $forker = new Forker($processObject);
-                    $forker->stop();
+                    $forker->stop($processObject->getMaxCloneProcessCount());
                 }
             }
             if ($afterStop !== null) {
