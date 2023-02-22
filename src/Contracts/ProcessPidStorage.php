@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrden\Fork;
+namespace Mrden\Fork\Contracts;
 
 use Ramsey\Uuid\Uuid;
 
@@ -11,12 +11,12 @@ abstract class ProcessPidStorage
      */
     protected $processUid;
 
-    public function __construct(ProcessInterface $process)
+    public function __construct(Process $process)
     {
         $this->processUid = Uuid::uuid5(
             Uuid::NAMESPACE_X500,
             $process->uuid()
-        );
+        )->toString();
     }
 
     abstract public function get(int $cloneNumber): int;

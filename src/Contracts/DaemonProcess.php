@@ -1,16 +1,9 @@
 <?php
 
-namespace Mrden\Fork\Process;
+namespace Mrden\Fork\Contracts;
 
-use Mrden\Fork\Traits\ProcessFileStorageTrait;
-
-abstract class DaemonProcess extends \Mrden\Fork\Process
+abstract class DaemonProcess extends \Mrden\Fork\Contracts\Process
 {
-    use ProcessFileStorageTrait;
-
-    /**
-     * sec
-     */
     protected $period = 0.2;
 
     protected $executing = true;

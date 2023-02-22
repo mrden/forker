@@ -1,20 +1,17 @@
 <?php
 
-namespace Mrden\Fork;
+namespace Mrden\Fork\Contracts;
 
 use Mrden\Fork\Exceptions\ParamException;
-use Mrden\Fork\Traits\ProcessFileStorageTrait;
 
-abstract class Process implements ProcessInterface
+abstract class Process implements Forkable, Cloneable
 {
-    use ProcessFileStorageTrait;
-
-    protected $maxCloneProcessCount = 5;
+    protected $maxCloneCount = 5;
     protected $isParent = false;
 
     protected $params;
     protected $parentProcess;
-    protected $cloneNumber;
+    protected $runningCloneNumber = 1;
     /**
      * @var callable[]
      */
@@ -23,19 +20,18 @@ abstract class Process implements ProcessInterface
     /**
      * @throws ParamException
      */
-    public function __construct(array $params = [], ?ProcessInterface $parentProcess = null)
+    public function __construct(array $params = [], ?Process $parentProcess = null)
     {
         $this->params = $params;
         $this->parentProcess = $parentProcess;
-        $this->cloneNumber = 1;
         $this->checkParams();
     }
 
     public function run(int $cloneNumber): void
     {
-        $this->cloneNumber = $cloneNumber;
-        if ($this->getParentProcess()) {
-            $this->getParentProcess()->isParent(true);
+        $this->runningCloneNumber = $cloneNumber;
+        if ($this->parentProcess) {
+            $this->parentProcess->isParent(true);
         }
         cli_set_process_title(sprintf('%s (%d)', $this->title(), $cloneNumber));
 
@@ -52,11 +48,14 @@ abstract class Process implements ProcessInterface
         }
     }
 
-    public function shutdownHandler(int $number): void
+    public function pid(int $cloneNumber): int
     {
-        if (!$this->isParent()) {
-            $this->pidStorage()->remove($number);
-        }
+        return $this->pidStorage()->get($cloneNumber);
+    }
+
+    public function maxCloneCount(): int
+    {
+        return $this->maxCloneCount;
     }
 
     public function uuid(): string
@@ -64,14 +63,11 @@ abstract class Process implements ProcessInterface
         return \get_class($this) . \serialize($this->params);
     }
 
-    public function getPid(int $cloneNumber): int
+    public function shutdownHandler(int $number): void
     {
-        return $this->pidStorage()->get($cloneNumber);
-    }
-
-    public function getMaxCloneProcessCount(): int
-    {
-        return $this->maxCloneProcessCount;
+        if (!$this->isParent()) {
+            $this->pidStorage()->remove($number);
+        }
     }
 
     public function signalHandler(int $signo): void
@@ -95,17 +91,12 @@ abstract class Process implements ProcessInterface
         return $isParent;
     }
 
-    protected function getParentProcess(): ?ProcessInterface
-    {
-        return $this->parentProcess;
-    }
-
     /**
      * @throws ParamException
      */
     protected function paramException(string $message): void
     {
-        if ($this->getParentProcess()) {
+        if ($this->parentProcess) {
             throw new ParamException(static::class . ': ' . $message);
         }
         throw new ParamException($message);
@@ -120,7 +111,11 @@ abstract class Process implements ProcessInterface
 
     private function title(): string
     {
-        return \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
+        $prefix = '';
+        if ($this->parentProcess) {
+            $prefix = $this->parentProcess->title() . ': ';
+        }
+        return $prefix . \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
     }
 
     private function paramToString(): string
@@ -144,4 +139,6 @@ abstract class Process implements ProcessInterface
     abstract protected function checkParams(): void;
     abstract protected function prepare(int $cloneNumber): void;
     abstract protected function execute(int $cloneNumber): void;
+
+    abstract protected function pidStorage(): ProcessPidStorage;
 }

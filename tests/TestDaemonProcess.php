@@ -2,16 +2,16 @@
 
 namespace Tests;
 
-use Mrden\Fork\ProcessPidStorage;
-use Mrden\Fork\Process\DaemonProcess;
+use Mrden\Fork\Contracts\DaemonProcess;
+use Mrden\Fork\Contracts\ProcessPidStorage;
 use Mrden\Fork\Storage\FilePidStorage;
-use Mrden\Fork\Traits\ProcessFileStorageTrait;
+use Tests\Traits\ProcessFileStorageTrait;
 
 class TestDaemonProcess extends DaemonProcess
 {
     use ProcessFileStorageTrait;
 
-    protected $maxCloneProcessCount = 15;
+    protected $maxCloneCount = 15;
     /**
      * @var FilePidStorage
      */

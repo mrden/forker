@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrden\Fork\Traits;
+namespace Tests\Traits;
 
 use Mrden\Fork\Contracts\ProcessPidStorage;
 use Mrden\Fork\Storage\FilePidStorage;
@@ -15,7 +15,7 @@ trait ProcessFileStorageTrait
     public function pidStorage(): ProcessPidStorage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FilePidStorage($this, sys_get_temp_dir());
+            $this->pidStorage = new FilePidStorage($this, __DIR__ . '/../storage');
         }
         return $this->pidStorage;
     }

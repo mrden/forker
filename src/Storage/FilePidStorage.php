@@ -2,8 +2,9 @@
 
 namespace Mrden\Fork\Storage;
 
-use Mrden\Fork\ProcessPidStorage;
-use Mrden\Fork\ProcessInterface;
+use Mrden\Fork\Contracts\Forkable;
+use Mrden\Fork\Contracts\Process;
+use Mrden\Fork\Contracts\ProcessPidStorage;
 
 final class FilePidStorage extends ProcessPidStorage
 {
@@ -12,7 +13,7 @@ final class FilePidStorage extends ProcessPidStorage
      */
     private $dirname;
 
-    public function __construct(ProcessInterface $process, string $dirname)
+    public function __construct(Process $process, string $dirname)
     {
         if (file_exists($dirname)) {
             $this->dirname = $dirname;

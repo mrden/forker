@@ -2,19 +2,38 @@
 
 namespace Tests;
 
-use Mrden\Fork\ProcessPidStorage;
-use Mrden\Fork\Storage\FilePidStorage;
+use Tests\Traits\ProcessFileStorageTrait;
 
-class TestDaemonWatcherProcess extends \Mrden\Fork\Process\DaemonWatcherProcess
+class TestDaemonWatcherProcess extends \Mrden\Fork\Contracts\DaemonWatcherProcess
 {
-    protected $period = 1;
+    use ProcessFileStorageTrait;
 
-    public function pidStorage(): ProcessPidStorage
+    protected $period = 25;
+
+    protected function processes(): array
     {
-        if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FilePidStorage($this, __DIR__ . '/storage');
-        }
-        return $this->pidStorage;
+        return [
+            [
+                'process' => TestDaemonWatcherProcess1::class,
+                'params' => [],
+                'count' => 5, // должен запуститься 1, т.к. это \Mrden\Fork\Contracts\DaemonWatcherProcess
+            ],
+            [
+                'process' => TestDaemonProcess::class,
+                'params' => ['test-param' => 5],
+                'count' => 5,
+            ],
+            [
+                'process' => TestSingleProcess::class,
+                'params' => ['time' => 35],
+                'count' => 2,
+            ],
+            [
+                'process' => TestSingleProcess::class,
+                'params' => [],
+                'count' => 1,
+            ],
+        ];
     }
 
     protected function prepare(int $cloneNumber): void
