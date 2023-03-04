@@ -16,7 +16,7 @@ abstract class DaemonProcess extends \Mrden\Fork\Contracts\Process
     public function execute(): void
     {
         while ($this->executing) {
-            // Восстановление pid в хранилище каждые 2 сек
+            // Restore pid in storage every iteration
             $pid = $this->pid($this->runningCloneNumber);
             if (!$pid) {
                 $this->pidStorage()->save(\getmypid(), $this->runningCloneNumber);

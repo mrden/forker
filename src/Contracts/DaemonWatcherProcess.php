@@ -29,7 +29,7 @@ abstract class DaemonWatcherProcess extends DaemonProcess
     }
 
     /**
-     * @throws \Mrden\Fork\Exceptions\ForkException
+     * @throws ForkException
      */
     protected function job(): void
     {
