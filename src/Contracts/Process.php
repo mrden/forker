@@ -2,24 +2,28 @@
 
 namespace Mrden\Fork\Contracts;
 
-use Mrden\Fork\Exceptions\ParamException;
-
 abstract class Process implements Forkable, Cloneable
 {
     protected $maxCloneCount = 5;
     protected $isParent = false;
-
+    /**
+     * @var array
+     */
     protected $params;
+    /**
+     * @var Process|null
+     */
     protected $parentProcess;
+    /**
+     * Number running clone
+     * @var int
+     */
     protected $runningCloneNumber = 1;
     /**
      * @var callable[]
      */
     protected $afterStopHandlers = [];
 
-    /**
-     * @throws ParamException
-     */
     public function __construct(array $params = [], ?Process $parentProcess = null)
     {
         $this->params = $params;
@@ -40,8 +44,8 @@ abstract class Process implements Forkable, Cloneable
         \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
 
         $this->pidStorage()->save(\getmypid(), $cloneNumber);
-        $this->prepare($cloneNumber);
-        $this->execute($cloneNumber);
+        $this->prepare();
+        $this->execute();
 
         foreach ($this->afterStopHandlers as $afterStopHandler) {
             $afterStopHandler();
@@ -91,17 +95,6 @@ abstract class Process implements Forkable, Cloneable
         return $isParent;
     }
 
-    /**
-     * @throws ParamException
-     */
-    protected function paramException(string $message): void
-    {
-        if ($this->parentProcess) {
-            throw new ParamException(static::class . ': ' . $message);
-        }
-        throw new ParamException($message);
-    }
-
     protected function stop(bool $terminate = false, ?callable $afterStop = null): void
     {
         if ($afterStop !== null) {
@@ -127,18 +120,29 @@ abstract class Process implements Forkable, Cloneable
         }
 
         return '[' . trim(str_replace(
-                ['array (', ')'],
-                '',
-                var_export($this->params, true)
-            ), " \t\n\r,") . ']';
+            ['array (', ')'],
+            '',
+            var_export($this->params, true)
+        ), " \t\n\r,") . ']';
     }
 
     /**
-     * @throws ParamException
+     * Checking process input parameters
      */
     abstract protected function checkParams(): void;
-    abstract protected function prepare(int $cloneNumber): void;
-    abstract protected function execute(int $cloneNumber): void;
 
+    /**
+     * Prepare to execute (for example, db connection to use in new thread)
+     */
+    abstract protected function prepare(): void;
+
+    /**
+     * Base logic of the process
+     */
+    abstract protected function execute(): void;
+
+    /**
+     * Storage for process pid
+     */
     abstract protected function pidStorage(): ProcessPidStorage;
 }

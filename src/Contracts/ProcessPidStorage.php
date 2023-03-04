@@ -20,6 +20,6 @@ abstract class ProcessPidStorage
     }
 
     abstract public function get(int $cloneNumber): int;
-    abstract function remove(int $cloneNumber): void;
-    abstract function save(int $pid, int $cloneNumber): void;
+    abstract public function remove(int $cloneNumber): void;
+    abstract public function save(int $pid, int $cloneNumber): void;
 }

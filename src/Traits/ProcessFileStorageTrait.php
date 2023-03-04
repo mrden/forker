@@ -12,7 +12,7 @@ trait ProcessFileStorageTrait
      */
     protected $pidStorage;
 
-    public function pidStorage(): ProcessPidStorage
+    protected function pidStorage(): ProcessPidStorage
     {
         if (!isset($this->pidStorage)) {
             $this->pidStorage = new FilePidStorage($this, sys_get_temp_dir());

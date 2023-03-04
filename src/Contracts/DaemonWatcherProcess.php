@@ -2,6 +2,7 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Exceptions\ForkException;
 use Mrden\Fork\Forker;
 
 abstract class DaemonWatcherProcess extends DaemonProcess
@@ -45,15 +46,25 @@ abstract class DaemonWatcherProcess extends DaemonProcess
     }
 
     /**
-     * @psalm-param array{process:string, params?:array} $process
+     * @psalm-param array{process:class-string<Process>, params?:array} $process
+     * @throws ForkException
      */
     private function createProcess(array $process): Process
     {
-        return new $process['process']($process['params'], $this);
+        if (!isset($process['process'])) {
+            throw new ForkException('Incorrect process config');
+        }
+        if (!class_exists($process['process'])) {
+            throw new ForkException('Not found process ' . $process['process']);
+        }
+        if (!is_subclass_of($process['process'], Process::class)) {
+            throw new ForkException('Incorrect implementation process ' . $process['process']);
+        }
+        return new $process['process']($process['params'] ?? [], $this);
     }
 
     /**
-     * @psalm-return array{array{process:string, params?:array, count?: int}}
+     * @psalm-return array{array{process:class-string<Process>, params?:array, count?: int}}
      */
     abstract protected function processes(): array;
 }

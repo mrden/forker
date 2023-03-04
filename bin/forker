@@ -44,15 +44,15 @@ foreach ($argv as $i => $arg) {
         $processClassName = $match['process'];
     }
     if (\preg_match('/^--process-(?<key>.+)=(?<value>.+)$/', $arg, $match)) {
-		$value = $match['value'];
-		if (ctype_digit($value)) {
+        $value = $match['value'];
+        if (ctype_digit($value)) {
             $value = (int)$value;
-		} elseif (is_numeric($value)) {
+        } elseif (is_numeric($value)) {
             $value = (float)$value;
-		} else {
+        } else {
             $value = $value === 'false' ? false : $value;
             $value = $value === 'true' ? true : $value;
-		}
+        }
         $processParams[$match['key']] = $value;
     }
     if (\preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
@@ -88,8 +88,8 @@ try {
     if ($stop) {
         $forker->stop($count);
     } else {
-		$forker->run($count);
-	}
+        $forker->run($count);
+    }
 } catch (\Mrden\Fork\Exceptions\ForkException $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
     exit(1);

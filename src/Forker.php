@@ -3,19 +3,30 @@
 namespace Mrden\Fork;
 
 use Mrden\Fork\Contracts\Cloneable;
+use Mrden\Fork\Contracts\DataPreparable;
 use Mrden\Fork\Contracts\Forkable;
+use Mrden\Fork\Contracts\SpecificCountCloneable;
 use Mrden\Fork\Exceptions\ForkException;
+use Mrden\Fork\Process\CallableProcess;
 
 final class Forker
 {
     public const STOP_ALL = -1;
     /**
-     * @var Forkable
+     * @var Forkable|callable
      */
     private $process;
 
-    public function __construct(Forkable $process)
+    public function __construct($process)
     {
+        if (is_callable($process)) {
+            $process = new CallableProcess($process);
+        }
+        if (!$process instanceof Forkable) {
+            throw new \InvalidArgumentException(
+                'Incorrect process realization (must be callable or \Mrden\Fork\Contracts\Forkable).'
+            );
+        }
         $this->process = $process;
         \pcntl_async_signals(true);
     }
@@ -23,8 +34,11 @@ final class Forker
     /**
      * @throws ForkException
      */
-    public function run(int $count): void
+    public function run(int $count = 1): void
     {
+        if ($this->process instanceof DataPreparable) {
+            $this->process->prepareData();
+        }
         \pcntl_signal(\SIGCHLD, \SIG_IGN);
         for ($number = 1; $number <= $this->cloneCount($count); $number++) {
             $this->runItem($number);
@@ -52,8 +66,15 @@ final class Forker
     private function cloneCount(int $count): int
     {
         if ($this->process instanceof Cloneable) {
-            if ($count == self::STOP_ALL || $count > $this->process->maxCloneCount()) {
+            if ($count == self::STOP_ALL) {
                 $count = $this->process->maxCloneCount();
+            } else {
+                if ($this->process instanceof SpecificCountCloneable) {
+                    $count = $this->process->countOfClones();
+                }
+                if ($count > $this->process->maxCloneCount()) {
+                    $count = $this->process->maxCloneCount();
+                }
             }
         } else {
             $count = 1;
@@ -66,8 +87,7 @@ final class Forker
      */
     private function runItem(int $number): void
     {
-        // is running
-        if ($this->process->pid($number)) {
+        if ($this->isRunning($number)) {
             return;
         }
         $pid = \pcntl_fork();
@@ -86,5 +106,17 @@ final class Forker
                 // Parent process logic
                 break;
         }
+    }
+
+    private function isRunning(int $number): bool
+    {
+        $pid = $this->process->pid($number);
+        if ($pid) {
+            if (\posix_kill($pid, 0)) {
+                return true;
+            }
+            return false;
+        }
+        return false;
     }
 }

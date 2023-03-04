@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests;
+namespace Tests\src;
 
-use Tests\Traits\ProcessFileStorageTrait;
+use Tests\src\Traits\ProcessFileStorageTrait;
 
 class TestDaemonWatcherProcess1 extends \Mrden\Fork\Contracts\DaemonWatcherProcess
 {
@@ -15,13 +15,13 @@ class TestDaemonWatcherProcess1 extends \Mrden\Fork\Contracts\DaemonWatcherProce
         return [
             [
                 'process' => TestSingleProcess::class,
-                'params' => ['time' => 5],
-                'count' => 2,
+                'params' => ['limit' => 900000000],
+                'count' => 1,
             ],
         ];
     }
 
-    protected function prepare(int $cloneNumber): void
+    protected function prepare(): void
     {
     }
 }

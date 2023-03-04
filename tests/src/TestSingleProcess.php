@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests;
+namespace Tests\src;
 
-use Tests\Traits\ProcessFileStorageTrait;
+use Tests\src\Traits\ProcessFileStorageTrait;
 
 class TestSingleProcess extends \Mrden\Fork\Contracts\Process
 {
@@ -12,12 +12,12 @@ class TestSingleProcess extends \Mrden\Fork\Contracts\Process
     {
     }
 
-    public function execute(int $cloneNumber): void
+    public function execute(): void
     {
         sleep($this->params['time'] ?? 11);
     }
 
-    protected function prepare(int $cloneNumber): void
+    protected function prepare(): void
     {
     }
 }
