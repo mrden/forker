@@ -20,7 +20,9 @@ abstract class MultiThreadProcess extends Process implements SpecificCountClonea
     {
         for ($i = $this->runningCloneNumber - 1; $i < $this->totalCountData; $i += $this->countOfClones()) {
             $data = $this->data[$i] ?? null;
-            $this->dataHandler($i, $data);
+            if ($data) {
+                $this->dataHandler($i, $data);
+            }
         }
     }
 
@@ -52,7 +54,7 @@ abstract class MultiThreadProcess extends Process implements SpecificCountClonea
 
     /**
      * @psalm-param positive-int $keyItem
-     * @psalm-param T|null $dataItem
+     * @psalm-param T $dataItem
      */
     abstract protected function dataHandler(int $keyItem, $dataItem): void;
 }
