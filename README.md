@@ -49,7 +49,7 @@ $forker = new \Mrden\Fork\Forker($singleProcess);
 $forker->run(3);
 // any code in this parent process
 ```
-### Start by `bin/forker`
+### Start via `bin/forker`
 `php bin/forker --process="\Any\SingleProcess" --count=3 --process-context="any context data"`
 
 ## Fork single daemon process in 3 clones
@@ -85,13 +85,13 @@ $singleProcess = new \Any\SingleDaemonProcess();
 $forker = new \Mrden\Fork\Forker($singleProcess);
 $forker->run(3);
 ```
-### Start by `bin/forker`
+### Start via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonProcess" --count=3`
 
-### Stop by `bin/forker`
+### Stop via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonProcess" --stop=1`
 
-### Stop only 2 clones by `bin/forker`
+### Stop only 2 clones via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonProcess" --stop=1 --count=2`
 
 ## Start single damon watcher process
@@ -133,13 +133,13 @@ $forker = new \Mrden\Fork\Forker($singleProcess);
 $forker->run();
 ```
 
-### Start by `bin/forker`
+### Start via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonWatcherProcess" --count=3`
 
-### Stop by `bin/forker`
+### Stop via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonWatcherProcess" --stop=1`
 will be stopped all (self and child process)
 
-### Stop by `kill`
+### Stop via `kill`
 * `kill PID` or `kill -15 PID` - will be stopped only daemon watcher, child process continue to work
 * `kill -10 PID` - will be stopped all (self and child process)
