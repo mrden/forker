@@ -10,7 +10,7 @@ final class CallableProcess extends Process
     use ProcessFileStorageTrait;
 
     /**
-     * @var callable
+     * @psalm-var callable(CallableProcess): void
      */
     private $logic;
 
@@ -35,6 +35,6 @@ final class CallableProcess extends Process
 
     protected function execute(): void
     {
-        \call_user_func($this->logic);
+        \call_user_func($this->logic, $this);
     }
 }

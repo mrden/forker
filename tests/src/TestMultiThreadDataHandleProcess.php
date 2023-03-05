@@ -2,18 +2,17 @@
 
 namespace Tests\src;
 
-
-use Mrden\Fork\Contracts\MultiThreadProcess;
+use Mrden\Fork\Contracts\MultiThreadDataHandleProcess;
 use Tests\src\Traits\ProcessFileStorageTrait;
 
 /**
- * @template-extends MultiThreadProcess<array{posting_number: string, status: string}>
+ * @template-extends MultiThreadDataHandleProcess<array{posting_number: string, status: string}>
  */
-class TestMultiThreadProcess extends MultiThreadProcess
+class TestMultiThreadDataHandleProcess extends MultiThreadDataHandleProcess
 {
     use ProcessFileStorageTrait;
 
-    protected $maxCloneCount = 15;
+    protected $maxCloneCount = 6;
 
     protected function checkParams(): void
     {
@@ -32,7 +31,7 @@ class TestMultiThreadProcess extends MultiThreadProcess
     {
         $file = __DIR__ . '/../storage/process_data.csv';
         file_put_contents($file, implode(';', [
-            'CPU (' . $this->ncpu . ')',
+            'CPU (' . $this->countCpu . ')',
             $keyItem,
             $this->runningCloneNumber,
             (new \DateTime())->format('m-d-Y H:i:s.u'),

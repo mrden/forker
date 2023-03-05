@@ -5,7 +5,7 @@ namespace Mrden\Fork\Contracts;
 /**
  * @template T of mixed
  */
-abstract class MultiThreadProcess extends Process implements SpecificCountCloneable, DataPreparable
+abstract class MultiThreadDataHandleProcess extends Process implements SpecificCountCloneable, DataPreparable
 {
     protected $maxCloneCount = 16;
 
@@ -14,7 +14,7 @@ abstract class MultiThreadProcess extends Process implements SpecificCountClonea
      */
     protected $data = [];
     protected $totalCountData = 0;
-    protected $ncpu = 2;
+    protected $countCpu = 2;
 
     protected function execute(): void
     {
@@ -32,19 +32,19 @@ abstract class MultiThreadProcess extends Process implements SpecificCountClonea
         $this->totalCountData = count($this->data);
 
         // Count logical processors
-        if (is_file('/proc/cpuinfo')) {
-            $cpuinfo = file_get_contents('/proc/cpuinfo');
-            preg_match_all('/^processor/m', $cpuinfo, $matches);
-            $this->ncpu = count($matches[0]);
+        if (\is_file('/proc/cpuinfo')) {
+            $cpuInfo = \file_get_contents('/proc/cpuinfo');
+            \preg_match_all('/^processor/m', $cpuInfo, $matches);
+            $this->countCpu = count($matches[0]);
         } else {
-            $ncpu = shell_exec('nproc');
-            $this->ncpu = $ncpu ?: $this->ncpu;
+            $nCpu = (int)\shell_exec('nproc');
+            $this->countCpu = $nCpu ?: $this->countCpu;
         }
     }
 
     public function countOfClones(): int
     {
-        return min($this->maxCloneCount, $this->ncpu);
+        return min($this->maxCloneCount, $this->countCpu);
     }
 
     /**
