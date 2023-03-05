@@ -124,7 +124,7 @@ class SingleDaemonWatcherProcess extends \Mrden\Fork\Contracts\DaemonWatcherProc
     }
 }
 ```
-Daemon process forked only in 1 clone.
+Daemon watcher process forked only in 1 clone.
 
 ### Start in code
 ```php
