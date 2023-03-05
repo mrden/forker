@@ -20,7 +20,6 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^9",
-    "psr/log": "1.1.*",
     "vimeo/psalm": "^4.30",
     "friendsofphp/php-cs-fixer": "3.4.0"
   },
