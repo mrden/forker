@@ -5,24 +5,25 @@ namespace Mrden\Fork\Contracts;
 abstract class Process implements Forkable, Cloneable
 {
     protected $maxCloneCount = 5;
-    protected $isParent = false;
+
+    private $isParent = false;
     /**
      * @var array
      */
-    protected $params;
+    private $params;
     /**
      * @var Process|null
      */
-    protected $parentProcess;
+    private $parentProcess;
     /**
      * Number running clone
      * @var int
      */
-    protected $runningCloneNumber = 1;
+    private $runningCloneNumber = 1;
     /**
      * @var callable[]
      */
-    protected $afterStopHandlers = [];
+    private $afterStopHandlers = [];
 
     public function __construct(array $params = [], ?Process $parentProcess = null)
     {
@@ -100,6 +101,21 @@ abstract class Process implements Forkable, Cloneable
         if ($afterStop !== null) {
             $this->afterStopHandlers[] = $afterStop;
         }
+    }
+
+    protected function getParams(): array
+    {
+        return $this->params;
+    }
+
+    protected function getParentProcess(): ?Process
+    {
+        return $this->parentProcess;
+    }
+
+    protected function getRunningCloneNumber(): int
+    {
+        return $this->runningCloneNumber;
     }
 
     private function title(): string

@@ -17,9 +17,9 @@ abstract class DaemonProcess extends \Mrden\Fork\Contracts\Process
     {
         while ($this->executing) {
             // Restore pid in storage every iteration
-            $pid = $this->pid($this->runningCloneNumber);
+            $pid = $this->pid($this->getRunningCloneNumber());
             if (!$pid) {
-                $this->pidStorage()->save(\getmypid(), $this->runningCloneNumber);
+                $this->pidStorage()->save(\getmypid(), $this->getRunningCloneNumber());
             }
             $this->job();
             \usleep($this->period * 1000000);

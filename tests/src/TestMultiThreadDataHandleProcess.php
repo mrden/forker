@@ -31,9 +31,8 @@ class TestMultiThreadDataHandleProcess extends MultiThreadDataHandleProcess
     {
         $file = __DIR__ . '/../storage/process_data.csv';
         file_put_contents($file, implode(';', [
-            'CPU (' . $this->countCpu . ')',
             $keyItem,
-            $this->runningCloneNumber,
+            $this->getRunningCloneNumber(),
             (new \DateTime())->format('m-d-Y H:i:s.u'),
             $dataItem['posting_number'],
             $dataItem['status'],

@@ -14,7 +14,8 @@ class TestSingleProcess extends \Mrden\Fork\Contracts\Process
 
     public function execute(): void
     {
-        sleep($this->params['time'] ?? 11);
+        $params = $this->getParams();
+        sleep($params['time'] ?? 11);
     }
 
     protected function prepare(): void

@@ -12,18 +12,26 @@ abstract class MultiThreadDataHandleProcess extends Process implements SpecificC
     /**
      * @psalm-var list<T>
      */
-    protected $data = [];
-    protected $totalCountData = 0;
-    protected $countCpu = 2;
+    private $data = [];
+    private $totalCountData = 0;
+    private $countCpu = 2;
 
     protected function execute(): void
     {
-        for ($i = $this->runningCloneNumber - 1; $i < $this->totalCountData; $i += $this->countOfClones()) {
+        for ($i = $this->getRunningCloneNumber() - 1; $i < $this->totalCountData; $i += $this->countOfClones()) {
             $data = $this->data[$i] ?? null;
             if ($data) {
                 $this->dataHandler($i, $data);
             }
         }
+    }
+
+    /**
+     * @return int
+     */
+    protected function getTotalCountData(): int
+    {
+        return $this->totalCountData;
     }
 
     public function prepareData(): void
