@@ -3,18 +3,12 @@
 namespace Tests;
 
 use Mrden\Fork\Forker;
+use Mrden\Fork\Process\CallableProcess;
 use Tests\src\TestDaemonProcess;
 use Tests\src\TestSingleProcess;
 
 final class ForkerTest extends \PHPUnit\Framework\TestCase
 {
-    public function testException()
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Incorrect process realization (must be callable or \Mrden\Fork\Contracts\Forkable).');
-        new Forker('string');
-    }
-
     public function testForkingProcess()
     {
         $process = new TestSingleProcess();
@@ -53,9 +47,9 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
             \unlink($file);
         }
         $text = 'callable test text';
-        $forker = new Forker(function () use ($file, $text) {
+        $forker = new Forker(new CallableProcess(function (CallableProcess $process) use ($file, $text) {
             \file_put_contents($file, $text);
-        });
+        }));
         $forker->run();
         \sleep(1);
         $this->assertStringEqualsFile($file, $text);
