@@ -90,7 +90,7 @@ try {
     } else {
         $forker->run($count);
     }
-} catch (\Mrden\Fork\Exceptions\ForkException $e) {
+} catch (\Exception $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
     exit(1);
 }
