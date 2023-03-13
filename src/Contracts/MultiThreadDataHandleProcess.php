@@ -26,14 +26,6 @@ abstract class MultiThreadDataHandleProcess extends Process implements SpecificC
         }
     }
 
-    /**
-     * @return int
-     */
-    protected function getTotalCountData(): int
-    {
-        return $this->totalCountData;
-    }
-
     public function prepareData(): void
     {
         $this->data = $this->data();
