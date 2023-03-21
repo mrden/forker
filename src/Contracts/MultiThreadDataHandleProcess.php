@@ -7,6 +7,9 @@ namespace Mrden\Fork\Contracts;
  */
 abstract class MultiThreadDataHandleProcess extends Process implements SpecificCountCloneable, DataPreparable
 {
+    /**
+     * @psalm-var positive-int
+     */
     protected $maxCloneCount = 16;
 
     /**

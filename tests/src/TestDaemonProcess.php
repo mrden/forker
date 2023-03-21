@@ -9,6 +9,9 @@ class TestDaemonProcess extends DaemonProcess
 {
     use ProcessFileStorageTrait;
 
+    /**
+     * @psalm-var positive-int
+     */
     protected $maxCloneCount = 15;
 
     protected function job(): void

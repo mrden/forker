@@ -12,6 +12,9 @@ class TestMultiThreadDataHandleProcess extends MultiThreadDataHandleProcess
 {
     use ProcessFileStorageTrait;
 
+    /**
+     * @psalm-var positive-int
+     */
     protected $maxCloneCount = 6;
 
     protected function checkParams(): void

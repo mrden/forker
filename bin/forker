@@ -80,7 +80,8 @@ if (!\is_numeric($count) || !$count) {
 $count = (int)$count;
 
 /**
- * @var $process \Mrden\Fork\Contracts\Forkable
+ * @psalm-var string<\Mrden\Fork\Contracts\Forkable> $processClassName
+ * @var \Mrden\Fork\Contracts\Forkable $process
  */
 try {
     $process = new $processClassName($processParams);

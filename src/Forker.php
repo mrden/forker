@@ -80,6 +80,7 @@ final class Forker
     }
 
     /**
+     * @psalm-param positive-int $number
      * @psalm-return positive-int|null
      * @throws ForkException
      */
@@ -106,6 +107,9 @@ final class Forker
         }
     }
 
+    /**
+     * @psalm-param positive-int $number
+     */
     private function isRunning(int $number): bool
     {
         $pid = $this->process->pid($number);

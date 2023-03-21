@@ -19,7 +19,18 @@ abstract class ProcessPidStorage
         )->toString();
     }
 
+    /**
+     * @psalm-param positive-int $cloneNumber
+     * @psalm-return positive-int
+     */
     abstract public function get(int $cloneNumber): int;
+    /**
+     * @psalm-param positive-int $cloneNumber
+     */
     abstract public function remove(int $cloneNumber): void;
+    /**
+     * @psalm-param positive-int $pid
+     * @psalm-param positive-int $cloneNumber
+     */
     abstract public function save(int $pid, int $cloneNumber): void;
 }
