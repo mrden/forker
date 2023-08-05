@@ -3,3 +3,5 @@
 vendor
 tests/storage
 composer.lock
+.php-cs-fixer.cache
+.phpunit.result.cache
