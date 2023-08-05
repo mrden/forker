@@ -3,7 +3,6 @@
 namespace Mrden\Fork;
 
 use Mrden\Fork\Contracts\Cloneable;
-use Mrden\Fork\Contracts\DataPreparable;
 use Mrden\Fork\Contracts\Forkable;
 use Mrden\Fork\Contracts\SpecificCountCloneable;
 use Mrden\Fork\Exceptions\ForkException;
@@ -28,9 +27,6 @@ final class Forker
      */
     public function run(int $count = 1): array
     {
-        if ($this->process instanceof DataPreparable) {
-            $this->process->prepareData();
-        }
         $runningPids = [];
         \pcntl_signal(\SIGCHLD, \SIG_IGN);
         for ($number = 1; $number <= $this->cloneCount($count); $number++) {

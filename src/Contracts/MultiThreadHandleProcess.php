@@ -5,7 +5,7 @@ namespace Mrden\Fork\Contracts;
 /**
  * @template T of mixed
  */
-abstract class MultiThreadDataHandleProcess extends Process implements SpecificCountCloneable, DataPreparable
+abstract class MultiThreadHandleProcess extends Process implements SpecificCountCloneable
 {
     /**
      * @psalm-var positive-int
@@ -13,27 +13,13 @@ abstract class MultiThreadDataHandleProcess extends Process implements SpecificC
     protected $maxCloneCount = 16;
 
     /**
-     * @psalm-var list<T>
+     * @var int
      */
-    private $data = [];
-    private $totalCountData = 0;
     private $countCpu = 2;
 
-    protected function execute(): void
+    public function __construct(array $params = [], ?Process $parentProcess = null)
     {
-        for ($i = $this->getRunningCloneNumber() - 1; $i < $this->totalCountData; $i += $this->countOfClones()) {
-            $data = $this->data[$i] ?? null;
-            if ($data) {
-                $this->dataHandler($i, $data);
-            }
-        }
-    }
-
-    public function prepareData(): void
-    {
-        $this->data = $this->data();
-        $this->totalCountData = count($this->data);
-
+        parent::__construct($params, $parentProcess);
         // Count logical processors
         if (\is_file('/proc/cpuinfo')) {
             $cpuInfo = \file_get_contents('/proc/cpuinfo');
@@ -45,15 +31,28 @@ abstract class MultiThreadDataHandleProcess extends Process implements SpecificC
         }
     }
 
+    protected function execute(): void
+    {
+        $index = 1;
+        $nextHandleIndex = $this->getRunningCloneNumber();
+        foreach ($this->data() as $dataItem) {
+            if ($dataItem && $nextHandleIndex == $index) {
+                $this->dataHandler($index, $dataItem);
+                $nextHandleIndex = $index + $this->countOfClones();
+            }
+            $index++;
+        }
+    }
+
     public function countOfClones(): int
     {
         return min($this->maxCloneCount, $this->countCpu);
     }
 
     /**
-     * @psalm-return list<T>
+     * @psalm-return iterable<T>
      */
-    abstract protected function data(): array;
+    abstract protected function data(): iterable;
 
     /**
      * @psalm-param positive-int $keyItem

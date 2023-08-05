@@ -2,13 +2,13 @@
 
 namespace Tests\src;
 
-use Mrden\Fork\Contracts\MultiThreadDataHandleProcess;
+use Mrden\Fork\Contracts\MultiThreadHandleProcess;
 use Tests\src\Traits\ProcessFileStorageTrait;
 
 /**
- * @template-extends MultiThreadDataHandleProcess<array{posting_number: string, status: string}>
+ * @template-extends MultiThreadHandleProcess<iterable{posting_number: string, status: string}>
  */
-class TestMultiThreadDataHandleProcess extends MultiThreadDataHandleProcess
+class TestMultiThreadArrayDataHandleProcess extends MultiThreadHandleProcess
 {
     use ProcessFileStorageTrait;
 
@@ -25,7 +25,7 @@ class TestMultiThreadDataHandleProcess extends MultiThreadDataHandleProcess
     {
     }
 
-    protected function data(): array
+    protected function data(): iterable
     {
         return array_values(json_decode(file_get_contents(__DIR__ . '/jsonList.json'), true));
     }
