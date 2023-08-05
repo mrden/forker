@@ -95,7 +95,7 @@ $forker->run(3);
 ### Stop only 2 clones via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonProcess" --stop=1 --count=2`
 
-## Start single damon watcher process
+## Start single daemon watcher process
 ```php
 namespace Any;
 
@@ -135,7 +135,7 @@ $forker->run();
 ```
 
 ### Start via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonWatcherProcess" --count=3`
+`php bin/forker --process="\Any\SingleDaemonWatcherProcess"`
 
 ### Stop via `bin/forker`
 `php bin/forker --process="\Any\SingleDaemonWatcherProcess" --stop=1`
