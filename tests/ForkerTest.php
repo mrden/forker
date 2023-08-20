@@ -72,4 +72,50 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
         $forker->stop(Forker::STOP_ALL);
         \sleep(3);
     }
+
+    public function testNotStartProcessIfExecuting()
+    {
+        $process = new TestSingleProcess(['time' => 25]);
+        $forker1 = new Forker($process);
+        $forker1->run();
+
+        $forker2 = new Forker($process);
+        $this->assertEmpty($forker2->run());
+        $forker1->stop(Forker::STOP_ALL);
+        $forker2->stop(Forker::STOP_ALL);
+    }
+
+    public function testStartOneOfTwoProcessesIfOneExecuting()
+    {
+        $process = new TestSingleProcess(['time' => 25]);
+        $forker1 = new Forker($process);
+        $forker1->run();
+
+        $forker2 = new Forker($process);
+        $this->assertCount(1, $forker2->run(2));
+        $forker1->stop(Forker::STOP_ALL);
+        $forker2->stop(Forker::STOP_ALL);
+    }
+
+    public function testRunNotRunningProcesses()
+    {
+        $process = new TestSingleProcess(['time' => 25]);
+        $forker1 = new Forker($process);
+        $forker1->run(2);
+
+        $forker2 = new Forker($process);
+        $this->assertCount(4, $forker2->run(6));
+        $forker1->stop(Forker::STOP_ALL);
+        $forker2->stop(Forker::STOP_ALL);
+    }
+
+    public function testMaxCloneCount()
+    {
+        $process = new TestSingleProcess(['time' => 25]);
+        $forker1 = new Forker($process);
+        $attemptCount = 8;
+        $this->assertNotEquals($attemptCount, $process->maxCloneCount());
+        $this->assertCount($process->maxCloneCount(), $forker1->run($attemptCount));
+        $forker1->stop(Forker::STOP_ALL);
+    }
 }

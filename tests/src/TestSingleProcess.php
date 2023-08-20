@@ -8,6 +8,8 @@ class TestSingleProcess extends \Mrden\Fork\Contracts\Process
 {
     use ProcessFileStorageTrait;
 
+    protected $maxCloneCount = 6;
+
     protected function checkParams(): void
     {
     }
