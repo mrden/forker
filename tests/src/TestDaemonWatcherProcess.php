@@ -2,15 +2,16 @@
 
 namespace Tests\src;
 
+use Mrden\Fork\Contracts\DaemonWatcherProcess;
 use Tests\src\Traits\ProcessFileStorageTrait;
 
-class TestDaemonWatcherProcess extends \Mrden\Fork\Contracts\DaemonWatcherProcess
+class TestDaemonWatcherProcess extends DaemonWatcherProcess
 {
     use ProcessFileStorageTrait;
 
     protected $period = 25;
 
-    protected function processes(): array
+    public function children(): array
     {
         return include __DIR__ . '/config.php';
     }

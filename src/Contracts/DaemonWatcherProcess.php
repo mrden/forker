@@ -5,8 +5,10 @@ namespace Mrden\Fork\Contracts;
 use Mrden\Fork\Exceptions\ForkException;
 use Mrden\Fork\Forker;
 
-abstract class DaemonWatcherProcess extends DaemonProcess
+abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
 {
+    private $isParent = false;
+
     final public function maxCloneCount(): int
     {
         return 1;
@@ -16,7 +18,7 @@ abstract class DaemonWatcherProcess extends DaemonProcess
     {
         parent::stop($terminate, function () use ($afterStop, $terminate) {
             if (!$terminate) {
-                foreach ($this->processes() as $process) {
+                foreach ($this->children() as $process) {
                     $processObject = $this->createProcess($process);
                     $forker = new Forker($processObject);
                     $forker->stop(Forker::STOP_ALL);
@@ -33,7 +35,7 @@ abstract class DaemonWatcherProcess extends DaemonProcess
      */
     protected function job(): void
     {
-        foreach ($this->processes() as $process) {
+        foreach ($this->children() as $process) {
             $processObject = $this->createProcess($process);
             $forker = new Forker($processObject);
             $count = $process['count'] ?? 1;
@@ -58,13 +60,20 @@ abstract class DaemonWatcherProcess extends DaemonProcess
             throw new ForkException('Not found process ' . $process['process']);
         }
         if (!is_subclass_of($process['process'], Process::class)) {
-            throw new ForkException('Incorrect implementation process ' . $process['process']);
+            throw new ForkException('Incorrect implementation child process ' . $process['process']);
         }
         return new $process['process']($process['params'] ?? [], $this);
     }
 
-    /**
-     * @psalm-return array{array{process:class-string<Process>, params?:array, count?: int}}
-     */
-    abstract protected function processes(): array;
+    public function setIsParent(bool $isParent): void
+    {
+        $this->isParent = $isParent;
+    }
+
+    public function shutdownHandler(int $number): void
+    {
+        if (!$this->isParent) {
+            parent::shutdownHandler($number);
+        }
+    }
 }

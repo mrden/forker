@@ -2,15 +2,16 @@
 
 namespace Tests\src;
 
+use Mrden\Fork\Contracts\DaemonWatcherProcess;
 use Tests\src\Traits\ProcessFileStorageTrait;
 
-class TestDaemonWatcherProcess1 extends \Mrden\Fork\Contracts\DaemonWatcherProcess
+class TestDaemonWatcherProcess1 extends DaemonWatcherProcess
 {
     use ProcessFileStorageTrait;
 
     protected $period = 15;
 
-    protected function processes(): array
+    public function children(): array
     {
         return [
             [

@@ -2,7 +2,7 @@
 
 namespace Mrden\Fork\Contracts;
 
-abstract class DaemonProcess extends \Mrden\Fork\Contracts\Process
+abstract class DaemonProcess extends Process
 {
     protected $period = 0.2;
     protected $executing = true;

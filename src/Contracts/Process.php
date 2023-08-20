@@ -9,13 +9,12 @@ abstract class Process implements Forkable, Cloneable
      */
     protected $maxCloneCount = 5;
 
-    private $isParent = false;
     /**
      * @var array
      */
     private $params;
     /**
-     * @var Process|null
+     * @var Parental|null
      */
     private $parentProcess;
     /**
@@ -31,7 +30,7 @@ abstract class Process implements Forkable, Cloneable
     /**
      * @throws \Exception
      */
-    public function __construct(array $params = [], ?Process $parentProcess = null)
+    public function __construct(array $params = [], ?Parental $parentProcess = null)
     {
         $this->params = $params;
         $this->parentProcess = $parentProcess;
@@ -42,7 +41,7 @@ abstract class Process implements Forkable, Cloneable
     {
         $this->runningCloneNumber = $cloneNumber;
         if ($this->parentProcess) {
-            $this->parentProcess->isParent(true);
+            $this->parentProcess->setIsParent(true);
         }
         cli_set_process_title(sprintf('%s (%d)', $this->title(), $cloneNumber));
 
@@ -76,9 +75,7 @@ abstract class Process implements Forkable, Cloneable
 
     public function shutdownHandler(int $number): void
     {
-        if (!$this->isParent()) {
-            $this->pidStorage()->remove($number);
-        }
+        $this->pidStorage()->remove($number);
     }
 
     public function signalHandler(int $signo): void
@@ -91,15 +88,6 @@ abstract class Process implements Forkable, Cloneable
                 $this->stop();
                 break;
         }
-    }
-
-    protected function isParent(?bool $isParent = null): bool
-    {
-        if ($isParent === null) {
-            return $this->isParent;
-        }
-        $this->isParent = $isParent;
-        return $isParent;
     }
 
     protected function stop(bool $terminate = false, ?callable $afterStop = null): void
@@ -121,14 +109,10 @@ abstract class Process implements Forkable, Cloneable
 
     private function title(): string
     {
-        $prefix = '';
-        if ($this->parentProcess) {
-            $prefix = $this->parentProcess->title() . ': ';
-        }
-        return $prefix . \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
+        return \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
     }
 
-    private function paramToString(): string
+    protected function paramToString(): string
     {
         foreach ($this->params as &$param) {
             if (\mb_strwidth($param) > 25) {
