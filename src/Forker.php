@@ -38,22 +38,28 @@ final class Forker
         return $runningPids;
     }
 
-    public function stop(int $count, int $number = null): void
+    /**
+     * @psalm-return list<positive-int>
+     */
+    public function stop(int $count, int $number = null): array
     {
+        $stoppedPids = [];
         $count = $this->cloneCount($count);
         if ($number === null) {
             for ($i = 1; $i <= $count; $i++) {
-                $this->stop($count, $i);
+                $stoppedPids = \array_values(\array_unique(\array_merge($stoppedPids, $this->stop($count, $i))));
             }
         } else {
             if ($number > $count) {
-                return;
+                return $stoppedPids;
             }
             $currentPid = $this->process->pid($number);
             if ($currentPid > 0) {
                 \posix_kill($currentPid, \SIGUSR1);
+                $stoppedPids[] = $currentPid;
             }
         }
+        return $stoppedPids;
     }
 
     private function cloneCount(int $count): int
