@@ -2,6 +2,8 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Helpers\SysInfo;
+
 /**
  * @template T of mixed
  */
@@ -13,22 +15,17 @@ abstract class MultiThreadHandleProcess extends Process implements SpecificCount
     protected $maxCloneCount = 16;
 
     /**
-     * @var int
+     * @psalm-var positive-int
      */
-    private $countCpu = 2;
+    private $countCpu;
 
-    public function __construct(array $params = [], ?Process $parentProcess = null)
+    /**
+     * @throws \Exception
+     */
+    public function __construct(array $params = [], ?Parental $parentProcess = null)
     {
         parent::__construct($params, $parentProcess);
-        // Count logical processors
-        if (\is_file('/proc/cpuinfo')) {
-            $cpuInfo = \file_get_contents('/proc/cpuinfo');
-            \preg_match_all('/^processor/m', $cpuInfo, $matches);
-            $this->countCpu = count($matches[0]);
-        } else {
-            $nCpu = (int)\shell_exec('nproc');
-            $this->countCpu = $nCpu ?: $this->countCpu;
-        }
+        $this->countCpu = SysInfo::numCpu() ?? 2;
     }
 
     protected function execute(): void
@@ -55,8 +52,8 @@ abstract class MultiThreadHandleProcess extends Process implements SpecificCount
     abstract protected function data(): iterable;
 
     /**
-     * @psalm-param positive-int $keyItem
-     * @psalm-param T $dataItem
+     * @psalm-param positive-int $key
+     * @psalm-param T $data
      */
-    abstract protected function dataHandler(int $keyItem, $dataItem): void;
+    abstract protected function dataHandler(int $key, $data): void;
 }

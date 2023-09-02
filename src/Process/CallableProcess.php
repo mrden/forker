@@ -2,6 +2,7 @@
 
 namespace Mrden\Fork\Process;
 
+use Mrden\Fork\Contracts\Parental;
 use Mrden\Fork\Contracts\Process;
 use Mrden\Fork\Traits\ProcessFileStorageTrait;
 
@@ -14,7 +15,7 @@ final class CallableProcess extends Process
      */
     private $logic;
 
-    public function __construct(callable $logic, array $params = [], ?Process $parentProcess = null)
+    public function __construct(callable $logic, array $params = [], ?Parental $parentProcess = null)
     {
         $this->logic = $logic;
         parent::__construct($params, $parentProcess);

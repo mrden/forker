@@ -15,7 +15,7 @@ trait ProcessFileStorageTrait
     protected function pidStorage(): ProcessPidStorage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FilePidStorage($this, sys_get_temp_dir());
+            $this->pidStorage = new FilePidStorage($this);
         }
         return $this->pidStorage;
     }

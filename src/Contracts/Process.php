@@ -2,6 +2,10 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Exceptions\ForkException;
+use Mrden\Fork\Forker;
+use Mrden\Fork\Process\ExecCmdProcess;
+
 abstract class Process implements Forkable, Cloneable
 {
     /**
@@ -14,7 +18,7 @@ abstract class Process implements Forkable, Cloneable
      */
     private $params;
     /**
-     * @var Parental|null
+     * @var Parental|Process|null
      */
     private $parentProcess;
     /**
@@ -26,6 +30,8 @@ abstract class Process implements Forkable, Cloneable
      * @var callable[]
      */
     private $afterStopHandlers = [];
+
+    private $needRestart = false;
 
     /**
      * @throws \Exception
@@ -39,14 +45,15 @@ abstract class Process implements Forkable, Cloneable
 
     public function run(int $cloneNumber): void
     {
-        $this->runningCloneNumber = $cloneNumber;
         if ($this->parentProcess) {
-            $this->parentProcess->setIsParent(true);
+            $this->parentProcess->setIsChildContext(true);
         }
+        $this->runningCloneNumber = $cloneNumber;
         cli_set_process_title(sprintf('%s (%d)', $this->title(), $cloneNumber));
 
         \pcntl_signal(\SIGTERM, [$this, 'signalHandler']);
         \pcntl_signal(\SIGUSR1, [$this, 'signalHandler']);
+        \pcntl_signal(\SIGUSR2, [$this, 'signalHandler']);
         \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
 
         $this->pidStorage()->save(\getmypid(), $cloneNumber);
@@ -58,8 +65,9 @@ abstract class Process implements Forkable, Cloneable
         }
     }
 
-    public function pid(int $cloneNumber): int
+    public function pid(int $cloneNumber = null): int
     {
+        $cloneNumber = $cloneNumber ?? $this->getRunningCloneNumber();
         return $this->pidStorage()->get($cloneNumber);
     }
 
@@ -73,28 +81,68 @@ abstract class Process implements Forkable, Cloneable
         return \get_class($this) . \serialize($this->params);
     }
 
+    /**
+     * @throws ForkException
+     */
     public function shutdownHandler(int $number): void
     {
         $this->pidStorage()->remove($number);
+        if ($this->needRestart) {
+            $restartProcess = new ExecCmdProcess([
+                'cmd' => $this->getCommand($number),
+            ]);
+            $forker = new Forker($restartProcess);
+            $forker->run();
+        }
     }
 
     public function signalHandler(int $signo): void
     {
         switch ($signo) {
             case \SIGTERM:
-                $this->stop(true);
+                $this->terminate();
                 break;
             case \SIGUSR1:
                 $this->stop();
                 break;
+            case \SIGUSR2:
+                $this->restart();
+                break;
         }
     }
 
-    protected function stop(bool $terminate = false, ?callable $afterStop = null): void
+    protected function getCommand(int $number): string
+    {
+        $forkerBinary = __DIR__ . '/../../bin/forker';
+        $command = sprintf(
+            '%s %s --process="%s" --count=%d --clone_number=%d',
+            PHP_BINARY,
+            $forkerBinary,
+            static::class,
+            $number,
+            $number
+        );
+        foreach ($this->params as $name => $value) {
+            $command .= ' --process-' . $name . '="' . $value .'"';
+        }
+        return $command;
+    }
+
+    protected function terminate(): void
+    {
+    }
+
+    protected function stop(?callable $afterStop = null): void
     {
         if ($afterStop !== null) {
             $this->afterStopHandlers[] = $afterStop;
         }
+    }
+
+    protected function restart(): void
+    {
+        $this->needRestart = true;
+        $this->stop();
     }
 
     protected function getParams(): array
@@ -109,22 +157,32 @@ abstract class Process implements Forkable, Cloneable
 
     private function title(): string
     {
-        return \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
+        $title = \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
+        if ($this->parentProcess) {
+            $parentPid = $this->parentProcess->pid();
+            if ($parentPid) {
+                $title = "$parentPid => $title";
+            }
+        }
+        return $title;
     }
 
     protected function paramToString(): string
     {
-        foreach ($this->params as &$param) {
+        $params = [];
+        foreach ($this->params as $key => $param) {
             if (\mb_strwidth($param) > 25) {
-                $param = \mb_strimwidth($param, 0, 10, '...') . \mb_substr($param, -15);
+                $params[$key] = \mb_strimwidth($param, 0, 10, '...') . \mb_substr($param, -15);
+            } else {
+                $params[$key] = $param;
             }
         }
 
-        return '[' . trim(str_replace(
+        return \preg_replace('|\s+|', ' ', '[' . trim(str_replace(
             ['array (', ')'],
             '',
-            var_export($this->params, true)
-        ), " \t\n\r,") . ']';
+            var_export($params, true)
+        ), " \t\n\r,") . ']');
     }
 
     /**

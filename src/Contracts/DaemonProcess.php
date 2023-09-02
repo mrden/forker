@@ -7,10 +7,10 @@ abstract class DaemonProcess extends Process
     protected $period = 0.2;
     protected $executing = true;
 
-    public function stop(bool $terminate = false, ?callable $afterStop = null): void
+    public function stop(?callable $afterStop = null): void
     {
         $this->executing = false;
-        parent::stop($terminate, $afterStop);
+        parent::stop($afterStop);
     }
 
     public function execute(): void

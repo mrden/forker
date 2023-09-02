@@ -6,6 +6,7 @@ use Mrden\Fork\Contracts\Cloneable;
 use Mrden\Fork\Contracts\Forkable;
 use Mrden\Fork\Contracts\SpecificCountCloneable;
 use Mrden\Fork\Exceptions\ForkException;
+use Mrden\Fork\Helpers\SysInfo;
 
 final class Forker
 {
@@ -17,6 +18,9 @@ final class Forker
 
     public function __construct(Forkable $process)
     {
+        if (!SysInfo::isCli()) {
+            throw new \LogicException('Forker is only used in cli mode.');
+        }
         $this->process = $process;
         \pcntl_async_signals(true);
     }
@@ -25,41 +29,71 @@ final class Forker
      * @psalm-return list<positive-int>
      * @throws ForkException
      */
-    public function run(int $count = 1): array
+    public function run(int $count = 1, int $number = null): array
     {
-        $runningPids = [];
+        $processedPids = [];
+        $count = $this->cloneCount($count);
         \pcntl_signal(\SIGCHLD, \SIG_IGN);
-        for ($number = 1; $number <= $this->cloneCount($count); $number++) {
+        if (!$number) {
+            for ($number = 1; $number <= $count; $number++) {
+                \array_values(\array_unique(\array_merge(
+                    $processedPids,
+                    $this->run($count, $number)
+                )));
+            }
+        } else {
+            if ($number > $count) {
+                return $processedPids;
+            }
             $pid = $this->runItem($number);
             if ($pid) {
-                $runningPids[] = $pid;
+                $processedPids[] = $pid;
             }
         }
-        return $runningPids;
+
+        return $processedPids;
     }
 
     /**
      * @psalm-return list<positive-int>
+     * @throws ForkException
      */
-    public function stop(int $count, int $number = null): array
+    public function stop(int $count, int $number = null, bool $restart = false): array
     {
-        $stoppedPids = [];
+        $processedPids = [];
         $count = $this->cloneCount($count);
         if ($number === null) {
             for ($i = 1; $i <= $count; $i++) {
-                $stoppedPids = \array_values(\array_unique(\array_merge($stoppedPids, $this->stop($count, $i))));
+                $processedPids = \array_values(\array_unique(\array_merge(
+                    $processedPids,
+                    $this->stop($count, $i, $restart)
+                )));
             }
         } else {
             if ($number > $count) {
-                return $stoppedPids;
+                return $processedPids;
             }
             $currentPid = $this->process->pid($number);
             if ($currentPid > 0) {
-                \posix_kill($currentPid, \SIGUSR1);
-                $stoppedPids[] = $currentPid;
+                \posix_kill($currentPid, $restart ? \SIGUSR2 : \SIGUSR1);
+                $processedPids[] = $currentPid;
+            } elseif ($restart) {
+                $pid = $this->runItem($number);
+                if ($pid) {
+                    $processedPids[] = $pid;
+                }
             }
         }
-        return $stoppedPids;
+        return $processedPids;
+    }
+
+    /**
+     * @psalm-return list<positive-int>
+     * @throws ForkException
+     */
+    public function restart(int $count, int $number = null): array
+    {
+        return $this->stop($count, $number, true);
     }
 
     private function cloneCount(int $count): int

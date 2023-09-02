@@ -30,15 +30,15 @@ class TestMultiThreadArrayDataHandleProcess extends MultiThreadHandleProcess
         return array_values(json_decode(file_get_contents(__DIR__ . '/jsonList.json'), true));
     }
 
-    protected function dataHandler(int $keyItem, $dataItem): void
+    protected function dataHandler(int $key, $data): void
     {
         $file = __DIR__ . '/../storage/process_data.csv';
         file_put_contents($file, implode(';', [
-            $keyItem,
+            $key,
             $this->getRunningCloneNumber(),
             (new \DateTime())->format('m-d-Y H:i:s.u'),
-            $dataItem['posting_number'],
-            $dataItem['status'],
+            $data['posting_number'],
+            $data['status'],
         ]) . \PHP_EOL, FILE_APPEND);
     }
 }

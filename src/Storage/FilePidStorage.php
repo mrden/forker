@@ -12,41 +12,42 @@ final class FilePidStorage extends ProcessPidStorage
      */
     private $dirname;
 
-    public function __construct(Process $process, string $dirname)
+    public function __construct(Process $process, ?string $dirname = null)
     {
-        if (!file_exists($dirname)) {
+        if ($dirname && !file_exists($dirname)) {
             \mkdir($dirname, 0755, true);
         }
+        $dirname = $dirname ?? sys_get_temp_dir();
         $this->dirname = $dirname;
         parent::__construct($process);
     }
 
-    public function get(int $cloneNumber): int
+    public function get(int $key): int
     {
-        return (int)@\file_get_contents($this->fileName($cloneNumber));
+        return (int)@\file_get_contents($this->fileName($key));
     }
 
-    public function remove(int $cloneNumber): void
+    public function remove(int $key): void
     {
-        $file = $this->fileName($cloneNumber);
+        $file = $this->fileName($key);
         if (\file_exists($file)) {
             \unlink($file);
         }
     }
 
-    public function save(int $pid, int $cloneNumber): void
+    public function save(int $pid, int $key): void
     {
-        $fileName = $this->fileName($cloneNumber);
+        $fileName = $this->fileName($key);
         \file_put_contents($fileName, $pid);
     }
 
-    private function fileName(int $cloneNumber): string
+    private function fileName(int $key): string
     {
         $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->processUid) . '/';
         if (!\file_exists($dir)) {
             \mkdir($dir, 0775, true);
         }
-        return $dir . $cloneNumber . '.pid';
+        return $dir . $key . '.pid';
     }
 
     private function slugify(string $string): string

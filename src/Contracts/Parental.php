@@ -4,7 +4,7 @@ namespace Mrden\Fork\Contracts;
 
 interface Parental
 {
-    public function setIsParent(bool $isParent): void;
+    public function setIsChildContext(bool $isChildContext): void;
 
     /**
      * @psalm-return array{array{process:class-string<Process>, params?:array, count?: int}}

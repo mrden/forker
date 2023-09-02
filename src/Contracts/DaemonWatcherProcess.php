@@ -7,22 +7,20 @@ use Mrden\Fork\Forker;
 
 abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
 {
-    private $isParent = false;
+    private $isChildContext = false;
 
     final public function maxCloneCount(): int
     {
         return 1;
     }
 
-    public function stop(bool $terminate = false, ?callable $afterStop = null): void
+    public function stop(?callable $afterStop = null): void
     {
-        parent::stop($terminate, function () use ($afterStop, $terminate) {
-            if (!$terminate) {
-                foreach ($this->children() as $process) {
-                    $processObject = $this->createProcess($process);
-                    $forker = new Forker($processObject);
-                    $forker->stop(Forker::STOP_ALL);
-                }
+        parent::stop(function () use ($afterStop) {
+            foreach ($this->children() as $process) {
+                $processObject = $this->createProcess($process);
+                $forker = new Forker($processObject);
+                $forker->stop(Forker::STOP_ALL);
             }
             if ($afterStop !== null) {
                 $afterStop();
@@ -65,14 +63,14 @@ abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
         return new $process['process']($process['params'] ?? [], $this);
     }
 
-    public function setIsParent(bool $isParent): void
+    public function setIsChildContext(bool $isChildContext): void
     {
-        $this->isParent = $isParent;
+        $this->isChildContext = $isChildContext;
     }
 
     public function shutdownHandler(int $number): void
     {
-        if (!$this->isParent) {
+        if (!$this->isChildContext) {
             parent::shutdownHandler($number);
         }
     }

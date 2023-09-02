@@ -20,17 +20,17 @@ abstract class ProcessPidStorage
     }
 
     /**
-     * @psalm-param positive-int $cloneNumber
+     * @psalm-param positive-int $key
      * @psalm-return positive-int
      */
-    abstract public function get(int $cloneNumber): int;
+    abstract public function get(int $key): int;
     /**
-     * @psalm-param positive-int $cloneNumber
+     * @psalm-param positive-int $key
      */
-    abstract public function remove(int $cloneNumber): void;
+    abstract public function remove(int $key): void;
     /**
      * @psalm-param positive-int $pid
-     * @psalm-param positive-int $cloneNumber
+     * @psalm-param positive-int $key
      */
-    abstract public function save(int $pid, int $cloneNumber): void;
+    abstract public function save(int $pid, int $key): void;
 }

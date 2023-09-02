@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+use Mrden\Fork\Contracts\Forkable;
+use Mrden\Fork\Forker;
+
 // php forker --process="..."
 // php forker --process="..." --stop=1
 // php forker --process="..." --process-param1="param1" --process-param2=2
@@ -37,8 +40,10 @@ if (empty($includePath)) {
 }
 $processClassName = '';
 $processParams = [];
-$count = null;
+$count = 1;
+$cloneNumber = null;
 $stop = false;
+$restart = false;
 foreach ($argv as $i => $arg) {
     if (\preg_match('/^--process=(?<process>.+)$/', $arg, $match)) {
         $processClassName = $match['process'];
@@ -55,11 +60,19 @@ foreach ($argv as $i => $arg) {
         }
         $processParams[$match['key']] = $value;
     }
+    if (\preg_match('/^--restart=(?<value>.+)$/', $arg, $match)) {
+        $restart = in_array($match['value'], [1, '1', 'true']);
+    }
     if (\preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
         $stop = in_array($match['value'], [1, '1', 'true']);
+        $restart = false;
     }
     if (\preg_match('/^--count=(?<value>.+)$/', $arg, $match)) {
-        $count = $match['value'];
+        $count = (int)$match['value'];
+    }
+
+    if ($count > 1 && \preg_match('/^--clone_number=(?<value>.+)$/', $arg, $match)) {
+        $cloneNumber = (int)$match['value'];
     }
 }
 
@@ -77,19 +90,21 @@ if (!\is_numeric($count) || !$count) {
     exit(1);
 }
 
-$count = (int)$count;
-
 /**
- * @psalm-var string<\Mrden\Fork\Contracts\Forkable> $processClassName
- * @var \Mrden\Fork\Contracts\Forkable $process
+ * @psalm-var string<Forkable> $processClassName
+ * @var Forkable $process
  */
 try {
     $process = new $processClassName($processParams);
-    $forker = new \Mrden\Fork\Forker($process);
-    if ($stop) {
-        $forker->stop($count);
+    $forker = new Forker($process);
+    if ($restart) {
+        $forker->restart($count, $cloneNumber);
     } else {
-        $forker->run($count);
+        if ($stop) {
+            $forker->stop($count, $cloneNumber);
+        } else {
+            $forker->run($count, $cloneNumber);
+        }
     }
 } catch (\Exception $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
