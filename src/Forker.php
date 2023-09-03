@@ -36,7 +36,7 @@ final class Forker
         \pcntl_signal(\SIGCHLD, \SIG_IGN);
         if (!$number) {
             for ($number = 1; $number <= $count; $number++) {
-                \array_values(\array_unique(\array_merge(
+                $processedPids = \array_values(\array_unique(\array_merge(
                     $processedPids,
                     $this->run($count, $number)
                 )));
