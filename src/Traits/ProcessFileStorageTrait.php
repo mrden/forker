@@ -2,20 +2,20 @@
 
 namespace Mrden\Fork\Traits;
 
-use Mrden\Fork\Contracts\ProcessPidStorage;
-use Mrden\Fork\Storage\FilePidStorage;
+use Mrden\Fork\Contracts\Storage;
+use Mrden\Fork\Storage\FileStorage;
 
 trait ProcessFileStorageTrait
 {
     /**
-     * @var FilePidStorage
+     * @var FileStorage
      */
     protected $pidStorage;
 
-    protected function pidStorage(): ProcessPidStorage
+    protected function pidStorage(): Storage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FilePidStorage($this);
+            $this->pidStorage = new FileStorage($this);
         }
         return $this->pidStorage;
     }

@@ -61,7 +61,7 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
         $process = new TestDaemonProcess(['test-param' => 50]);
         $forker = new Forker($process);
         $forker->run();
-        $pidFile = __DIR__ . '/storage/forker/a057668c-c305-5815-ab57-a69c2ba5197b/1.pid';
+        $pidFile = __DIR__ . '/storage/forker/a057668c-c305-5815-ab57-a69c2ba5197b/1.storage';
         \sleep(1);
         if (\file_exists($pidFile)) {
             \unlink($pidFile);
@@ -78,7 +78,7 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
         $forker1->run();
-
+        \sleep(1);
         $forker2 = new Forker($process);
         $this->assertEmpty($forker2->run());
         $forker1->stop(Forker::STOP_ALL);
@@ -90,7 +90,7 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
         $forker1->run();
-
+        \sleep(1);
         $forker2 = new Forker($process);
         $this->assertCount(1, $forker2->run(2));
         $forker1->stop(Forker::STOP_ALL);
@@ -102,7 +102,7 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
         $forker1->run(2);
-
+        \sleep(1);
         $forker2 = new Forker($process);
         $this->assertCount(4, $forker2->run(6));
         $forker1->stop(Forker::STOP_ALL);

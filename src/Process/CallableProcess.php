@@ -2,7 +2,7 @@
 
 namespace Mrden\Fork\Process;
 
-use Mrden\Fork\Contracts\Parental;
+use Mrden\Fork\Contracts\Interfaces\Parental;
 use Mrden\Fork\Contracts\Process;
 use Mrden\Fork\Traits\ProcessFileStorageTrait;
 

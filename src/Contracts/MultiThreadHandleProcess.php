@@ -2,6 +2,8 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Contracts\Interfaces\Parental;
+use Mrden\Fork\Contracts\Interfaces\SpecificCountCloneable;
 use Mrden\Fork\Helpers\SysInfo;
 
 /**

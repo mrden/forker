@@ -2,6 +2,7 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Contracts\Interfaces\Parental;
 use Mrden\Fork\Exceptions\ForkException;
 use Mrden\Fork\Forker;
 

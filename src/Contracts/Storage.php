@@ -2,20 +2,21 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Contracts\Interfaces\Unique;
 use Ramsey\Uuid\Uuid;
 
-abstract class ProcessPidStorage
+abstract class Storage
 {
     /**
      * @var string
      */
-    protected $processUid;
+    protected $uid;
 
-    public function __construct(Process $process)
+    public function __construct(Unique $unique)
     {
-        $this->processUid = Uuid::uuid5(
+        $this->uid = Uuid::uuid5(
             Uuid::NAMESPACE_X500,
-            $process->uuid()
+            $unique->uuid()
         )->toString();
     }
 
@@ -29,8 +30,8 @@ abstract class ProcessPidStorage
      */
     abstract public function remove(int $key): void;
     /**
-     * @psalm-param positive-int $pid
+     * @psalm-param positive-int $value
      * @psalm-param positive-int $key
      */
-    abstract public function save(int $pid, int $key): void;
+    abstract public function save(int $key, int $value): void;
 }

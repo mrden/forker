@@ -2,9 +2,9 @@
 
 namespace Mrden\Fork;
 
-use Mrden\Fork\Contracts\Cloneable;
-use Mrden\Fork\Contracts\Forkable;
-use Mrden\Fork\Contracts\SpecificCountCloneable;
+use Mrden\Fork\Contracts\Interfaces\Cloneable;
+use Mrden\Fork\Contracts\Interfaces\Forkable;
+use Mrden\Fork\Contracts\Interfaces\SpecificCountCloneable;
 use Mrden\Fork\Exceptions\ForkException;
 use Mrden\Fork\Helpers\SysInfo;
 
@@ -105,9 +105,7 @@ final class Forker
                 if ($this->process instanceof SpecificCountCloneable) {
                     $count = $this->process->countOfClones();
                 }
-                if ($count > $this->process->maxCloneCount()) {
-                    $count = $this->process->maxCloneCount();
-                }
+                $count = min($count, $this->process->maxCloneCount());
             }
         } else {
             $count = 1;

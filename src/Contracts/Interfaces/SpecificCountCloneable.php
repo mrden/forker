@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrden\Fork\Contracts;
+namespace Mrden\Fork\Contracts\Interfaces;
 
 interface SpecificCountCloneable extends Cloneable
 {

@@ -17,11 +17,7 @@ class TestSingleProcess extends \Mrden\Fork\Contracts\Process
     public function execute(): void
     {
         $params = $this->getParams();
-        $i = 0;
-        while ($i < 180000000) {
-            $i += 0.5;
-        }
-        //sleep($params['time'] ?? 11);
+        sleep($params['time'] ?? 11);
     }
 
     protected function prepare(): void

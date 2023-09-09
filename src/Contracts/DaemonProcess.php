@@ -19,7 +19,7 @@ abstract class DaemonProcess extends Process
             // Restore pid in storage every iteration
             $pid = $this->pid($this->getRunningCloneNumber());
             if (!$pid) {
-                $this->pidStorage()->save(\getmypid(), $this->getRunningCloneNumber());
+                $this->pidStorage()->save($this->getRunningCloneNumber(), \getmypid());
             }
             $this->job();
             \usleep($this->period * 1000000);

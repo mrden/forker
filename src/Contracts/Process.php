@@ -2,11 +2,15 @@
 
 namespace Mrden\Fork\Contracts;
 
+use Mrden\Fork\Contracts\Interfaces\Cloneable;
+use Mrden\Fork\Contracts\Interfaces\Forkable;
+use Mrden\Fork\Contracts\Interfaces\Parental;
+use Mrden\Fork\Contracts\Interfaces\Unique;
 use Mrden\Fork\Exceptions\ForkException;
 use Mrden\Fork\Forker;
 use Mrden\Fork\Process\ExecCmdProcess;
 
-abstract class Process implements Forkable, Cloneable
+abstract class Process implements Forkable, Cloneable, Unique
 {
     /**
      * @psalm-var positive-int
@@ -43,7 +47,7 @@ abstract class Process implements Forkable, Cloneable
         $this->checkParams();
     }
 
-    public function run(int $cloneNumber): void
+    public function run(int $cloneNumber = 1): void
     {
         if ($this->parentProcess) {
             $this->parentProcess->setIsChildContext(true);
@@ -56,7 +60,7 @@ abstract class Process implements Forkable, Cloneable
         \pcntl_signal(\SIGUSR2, [$this, 'signalHandler']);
         \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
 
-        $this->pidStorage()->save(\getmypid(), $cloneNumber);
+        $this->pidStorage()->save($cloneNumber, \getmypid());
         $this->prepare();
         $this->execute();
 
@@ -204,5 +208,5 @@ abstract class Process implements Forkable, Cloneable
     /**
      * Storage for process pid
      */
-    abstract protected function pidStorage(): ProcessPidStorage;
+    abstract protected function pidStorage(): Storage;
 }

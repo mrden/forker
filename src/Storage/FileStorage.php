@@ -2,24 +2,24 @@
 
 namespace Mrden\Fork\Storage;
 
-use Mrden\Fork\Contracts\Process;
-use Mrden\Fork\Contracts\ProcessPidStorage;
+use Mrden\Fork\Contracts\Interfaces\Unique;
+use Mrden\Fork\Contracts\Storage;
 
-final class FilePidStorage extends ProcessPidStorage
+final class FileStorage extends Storage
 {
     /**
      * @var string
      */
     private $dirname;
 
-    public function __construct(Process $process, ?string $dirname = null)
+    public function __construct(Unique $unique, ?string $dirname = null)
     {
         if ($dirname && !file_exists($dirname)) {
             \mkdir($dirname, 0755, true);
         }
         $dirname = $dirname ?? sys_get_temp_dir();
         $this->dirname = $dirname;
-        parent::__construct($process);
+        parent::__construct($unique);
     }
 
     public function get(int $key): int
@@ -35,19 +35,19 @@ final class FilePidStorage extends ProcessPidStorage
         }
     }
 
-    public function save(int $pid, int $key): void
+    public function save(int $key, int $value): void
     {
         $fileName = $this->fileName($key);
-        \file_put_contents($fileName, $pid);
+        \file_put_contents($fileName, $value);
     }
 
     private function fileName(int $key): string
     {
-        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->processUid) . '/';
+        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->uid) . '/';
         if (!\file_exists($dir)) {
             \mkdir($dir, 0775, true);
         }
-        return $dir . $key . '.pid';
+        return $dir . $key . '.storage';
     }
 
     private function slugify(string $string): string

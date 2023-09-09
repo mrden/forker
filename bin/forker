@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-use Mrden\Fork\Contracts\Forkable;
+use Mrden\Fork\Contracts\Interfaces\Forkable;
 use Mrden\Fork\Forker;
 
 // php forker --process="..."

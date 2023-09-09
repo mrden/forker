@@ -1,6 +1,8 @@
 <?php
 
-namespace Mrden\Fork\Contracts;
+namespace Mrden\Fork\Contracts\Interfaces;
+
+use Mrden\Fork\Contracts\Process;
 
 interface Parental
 {
