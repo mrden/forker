@@ -24,7 +24,7 @@ abstract class DaemonProcess extends Process
             }
             $this->job();
             \usleep($this->period * 1000000);
-            if ($this->memoryLimit && memory_get_usage() > $this->memoryLimit) {
+            if ($this->memoryLimit && \memory_get_usage() > $this->memoryLimit) {
                 $this->restart();
             }
         }

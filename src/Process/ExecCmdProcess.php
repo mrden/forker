@@ -32,14 +32,14 @@ class ExecCmdProcess extends Process
      */
     protected function execute(): void
     {
-        sleep(1);
+        \sleep(1);
         $command = $this->getParams()['cmd'] ?? null;
         if (!$command) {
             return;
         }
-        if (strpos($command, '> /dev/null 2>&1 &') === false) {
+        if (\strpos($command, '> /dev/null 2>&1 &') === false) {
             $command = $command . ' > /dev/null 2>&1 &';
         }
-        exec($command, $o, $rc);
+        \exec($command, $o, $rc);
     }
 }

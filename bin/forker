@@ -4,11 +4,6 @@
 use Mrden\Fork\Contracts\Interfaces\Forkable;
 use Mrden\Fork\Forker;
 
-// php forker --process="..."
-// php forker --process="..." --stop=1
-// php forker --process="..." --process-param1="param1" --process-param2=2
-// php forker --process="..." --count=5 ...
-
 // Detect autoload location
 $autoload = [
     __DIR__ . '/../vendor/autoload.php', // The forker located in development.
@@ -50,9 +45,9 @@ foreach ($argv as $i => $arg) {
     }
     if (\preg_match('/^--process-(?<key>.+)=(?<value>.+)$/', $arg, $match)) {
         $value = $match['value'];
-        if (ctype_digit($value)) {
+        if (\ctype_digit($value)) {
             $value = (int)$value;
-        } elseif (is_numeric($value)) {
+        } elseif (\is_numeric($value)) {
             $value = (float)$value;
         } else {
             $value = $value === 'false' ? false : $value;
@@ -61,10 +56,10 @@ foreach ($argv as $i => $arg) {
         $processParams[$match['key']] = $value;
     }
     if (\preg_match('/^--restart=(?<value>.+)$/', $arg, $match)) {
-        $restart = in_array($match['value'], [1, '1', 'true']);
+        $restart = \in_array($match['value'], [1, '1', 'true']);
     }
     if (\preg_match('/^--stop=(?<value>.+)$/', $arg, $match)) {
-        $stop = in_array($match['value'], [1, '1', 'true']);
+        $stop = \in_array($match['value'], [1, '1', 'true']);
         $restart = false;
     }
     if (\preg_match('/^--count=(?<value>.+)$/', $arg, $match)) {
@@ -99,12 +94,10 @@ try {
     $forker = new Forker($process);
     if ($restart) {
         $forker->restart($count, $cloneNumber);
+    } elseif ($stop) {
+        $forker->stop($count, $cloneNumber);
     } else {
-        if ($stop) {
-            $forker->stop($count, $cloneNumber);
-        } else {
-            $forker->run($count, $cloneNumber);
-        }
+        $forker->run($count, $cloneNumber);
     }
 } catch (\Exception $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);

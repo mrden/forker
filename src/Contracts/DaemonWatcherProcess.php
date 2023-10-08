@@ -65,10 +65,10 @@ abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
         if (!isset($process['process'])) {
             throw new ForkException('Incorrect process config');
         }
-        if (!class_exists($process['process'])) {
+        if (!\class_exists($process['process'])) {
             throw new ForkException('Not found process ' . $process['process']);
         }
-        if (!is_subclass_of($process['process'], Process::class)) {
+        if (!\is_subclass_of($process['process'], Process::class)) {
             throw new ForkException('Incorrect implementation child process ' . $process['process']);
         }
         return new $process['process']($process['params'] ?? [], $this);

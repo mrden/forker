@@ -16,10 +16,13 @@ final class Forker
      */
     private $process;
 
+    /**
+     * @throws ForkException
+     */
     public function __construct(Forkable $process)
     {
         if (!SysInfo::isCli()) {
-            throw new \LogicException('Forker is only used in cli mode.');
+            throw new ForkException('Forker is only used in cli mode.');
         }
         $this->process = $process;
         \pcntl_async_signals(true);
@@ -105,7 +108,7 @@ final class Forker
                 if ($this->process instanceof SpecificCountCloneable) {
                     $count = $this->process->countOfClones();
                 }
-                $count = min($count, $this->process->maxCloneCount());
+                $count = \min($count, $this->process->maxCloneCount());
             }
         } else {
             $count = 1;

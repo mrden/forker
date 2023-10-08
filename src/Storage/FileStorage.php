@@ -14,17 +14,18 @@ final class FileStorage extends Storage
 
     public function __construct(Unique $unique, ?string $dirname = null)
     {
-        if ($dirname && !file_exists($dirname)) {
+        if ($dirname && !\file_exists($dirname)) {
             \mkdir($dirname, 0755, true);
         }
-        $dirname = $dirname ?? sys_get_temp_dir();
+        $dirname = $dirname ?? \sys_get_temp_dir();
         $this->dirname = $dirname;
         parent::__construct($unique);
     }
 
     public function get(int $key): int
     {
-        return (int)@\file_get_contents($this->fileName($key));
+        $file = $this->fileName($key);
+        return (int)@\file_get_contents($file);
     }
 
     public function remove(int $key): void
@@ -53,8 +54,8 @@ final class FileStorage extends Storage
     private function slugify(string $string): string
     {
         \Transliterator::create('Russian-Latin/BGN')->transliterate($string);
-        $string = preg_replace('/[^a-zA-Z0-9=\s—–\-]+/u', '', $string);
-        $string = preg_replace('/[=\s—–\-]+/u', '-', $string);
+        $string = \preg_replace('/[^a-zA-Z0-9=\s—–\-]+/u', '', $string);
+        $string = \preg_replace('/[=\s—–\-]+/u', '-', $string);
         $string = \trim($string, '-');
         return \strtolower($string);
     }

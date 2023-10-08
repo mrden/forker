@@ -45,7 +45,7 @@ abstract class MultiThreadHandleProcess extends Process implements SpecificCount
 
     public function countOfClones(): int
     {
-        return min($this->maxCloneCount, $this->countCpu);
+        return \min($this->maxCloneCount, $this->countCpu);
     }
 
     /**
