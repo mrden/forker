@@ -40,7 +40,7 @@ if (empty($includePath)) {
 }
 $processClassName = '';
 $processParams = [];
-$count = 1;
+$count = null;
 $cloneNumber = null;
 $stop = false;
 $restart = false;
@@ -71,13 +71,13 @@ foreach ($argv as $i => $arg) {
         $count = (int)$match['value'];
     }
 
-    if ($count > 1 && \preg_match('/^--clone_number=(?<value>.+)$/', $arg, $match)) {
+    if (\preg_match('/^--clone_number=(?<value>.+)$/', $arg, $match)) {
         $cloneNumber = (int)$match['value'];
     }
 }
 
 if ($count === null) {
-    $count = $stop ? -1 : 1;
+    $count = $stop ? -1 : ($cloneNumber > 0 ? $cloneNumber : 1);
 }
 
 if (!$processClassName || !\class_exists($processClassName)) {
