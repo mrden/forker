@@ -10,6 +10,8 @@ abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
 {
     private $isChildContext = false;
 
+    protected $excludeParamsKey = ['restartChildren'];
+
     final public function maxCloneCount(): int
     {
         return 1;
@@ -34,11 +36,19 @@ abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
      */
     protected function job(): void
     {
+        $neededRestartChildren = $this->params['restartChildren'] ?? false;
         foreach ($this->children() as $process) {
             $processObject = $this->createProcess($process);
             $forker = new Forker($processObject);
             $count = $process['count'] ?? 1;
-            $forker->run($count);
+            if ($neededRestartChildren) {
+                $forker->restart($count);
+            } else {
+                $forker->run($count);
+            }
+        }
+        if ($neededRestartChildren) {
+            unset($this->params['restartChildren']);
         }
     }
 
@@ -72,6 +82,9 @@ abstract class DaemonWatcherProcess extends DaemonProcess implements Parental
     public function shutdownHandler(int $number): void
     {
         if (!$this->isChildContext) {
+            if ($this->needRestart) {
+                $this->params['restartChildren'] = true;
+            }
             parent::shutdownHandler($number);
         }
     }

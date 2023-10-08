@@ -20,7 +20,7 @@ abstract class Process implements Forkable, Cloneable, Unique
     /**
      * @var array
      */
-    private $params;
+    protected $params;
     /**
      * @var Parental|Process|null
      */
@@ -35,7 +35,8 @@ abstract class Process implements Forkable, Cloneable, Unique
      */
     private $afterStopHandlers = [];
 
-    private $needRestart = false;
+    protected $needRestart = false;
+    protected $excludeParamsKey = [];
 
     /**
      * @throws \Exception
@@ -82,7 +83,15 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     public function uuid(): string
     {
-        return \get_class($this) . \serialize($this->params);
+        $params = [];
+        foreach ($this->params as $key => $param) {
+            if (\in_array($key, $this->excludeParamsKey)) {
+                continue;
+            }
+            $params[$key] = $param;
+        }
+
+        return \get_class($this) . \serialize($params);
     }
 
     /**
