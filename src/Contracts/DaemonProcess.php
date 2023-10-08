@@ -6,6 +6,7 @@ abstract class DaemonProcess extends Process
 {
     protected $period = 0.2;
     protected $executing = true;
+    protected $memoryLimit;
 
     public function stop(?callable $afterStop = null): void
     {
@@ -23,6 +24,9 @@ abstract class DaemonProcess extends Process
             }
             $this->job();
             \usleep($this->period * 1000000);
+            if ($this->memoryLimit && memory_get_usage() > $this->memoryLimit) {
+                $this->restart();
+            }
         }
     }
 
