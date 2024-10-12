@@ -1,9 +1,9 @@
 <?php
 
-namespace Mrden\Fork\Storage;
+namespace Mrden\Forker\Storage;
 
-use Mrden\Fork\Contracts\Interfaces\Unique;
-use Mrden\Fork\Contracts\Storage;
+use Mrden\Forker\Contracts\Storage;
+use Mrden\Forker\Contracts\Unique;
 
 final class FileStorage extends Storage
 {

@@ -1,10 +1,9 @@
 <?php
 
-namespace Mrden\Fork\Process;
+namespace Mrden\Forker\Process;
 
-use Mrden\Fork\Contracts\Interfaces\Parental;
-use Mrden\Fork\Contracts\Process;
-use Mrden\Fork\Traits\ProcessFileStorageTrait;
+use Mrden\Forker\Contracts\Process;
+use Mrden\Forker\Traits\ProcessFileStorageTrait;
 
 final class CallableProcess extends Process
 {
@@ -15,15 +14,15 @@ final class CallableProcess extends Process
      */
     private $logic;
 
-    public function __construct(callable $logic, array $params = [], ?Parental $parentProcess = null)
+    public function __construct(callable $logic, array $params = [])
     {
         $this->logic = $logic;
-        parent::__construct($params, $parentProcess);
+        parent::__construct($params);
     }
 
     public function uuid(): string
     {
-        return \spl_object_hash((object)$this->logic) . parent::uuid();
+        return \spl_object_hash((object) $this->logic) . parent::uuid();
     }
 
     protected function checkParams(): void

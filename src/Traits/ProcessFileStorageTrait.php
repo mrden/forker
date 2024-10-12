@@ -1,9 +1,9 @@
 <?php
 
-namespace Mrden\Fork\Traits;
+namespace Mrden\Forker\Traits;
 
-use Mrden\Fork\Contracts\Storage;
-use Mrden\Fork\Storage\FileStorage;
+use Mrden\Forker\Contracts\Storage;
+use Mrden\Forker\Storage\FileStorage;
 
 trait ProcessFileStorageTrait
 {

@@ -1,15 +1,13 @@
 <?php
 
-namespace Mrden\Fork\Contracts;
+namespace Mrden\Forker\Contracts;
 
-use Mrden\Fork\Contracts\Interfaces\Parental;
-use Mrden\Fork\Contracts\Interfaces\SpecificCountCloneable;
-use Mrden\Fork\Helpers\SysInfo;
+use Mrden\Forker\Helpers\SysInfo;
 
 /**
  * @template T of mixed
  */
-abstract class MultiThreadHandleProcess extends Process implements SpecificCountCloneable
+abstract class MultiThreadHandleProcess extends Process implements SpecificCountCloneable, Preparable
 {
     /**
      * @psalm-var positive-int
@@ -22,19 +20,29 @@ abstract class MultiThreadHandleProcess extends Process implements SpecificCount
     private $countCpu;
 
     /**
+     * @psalm-var iterable<T>
+     */
+    private $data = [];
+
+    /**
      * @throws \Exception
      */
-    public function __construct(array $params = [], ?Parental $parentProcess = null)
+    public function __construct(array $params = [])
     {
-        parent::__construct($params, $parentProcess);
+        parent::__construct($params);
         $this->countCpu = SysInfo::numCpu() ?? 2;
+    }
+
+    public function prepareToFork(): void
+    {
+        $this->data = $this->data();
     }
 
     protected function execute(): void
     {
         $index = 1;
         $nextHandleIndex = $this->getRunningCloneNumber();
-        foreach ($this->data() as $dataItem) {
+        foreach ($this->data as $dataItem) {
             if ($dataItem && $nextHandleIndex == $index) {
                 $this->dataHandler($index, $dataItem);
                 $nextHandleIndex = $index + $this->countOfClones();

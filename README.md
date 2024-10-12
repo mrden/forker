@@ -8,11 +8,11 @@
 
 ```php
 $context = 'any parent code context data';
-$callable = new \Mrden\Fork\Process\CallableProcess(function () use ($context) {
+$callable = new \Mrden\Forker\Process\CallableProcess(static function () use ($context) {
     echo 'context from parent process ' . $context;
 });
-$forker = new \Mrden\Fork\Forker($callable);
-$forker->run();
+$forker = new \Mrden\Forker\Forker($callable);
+$forker->fork();
 // any code in this parent process
 ```
 
@@ -21,9 +21,9 @@ $forker->run();
 ```php
 namespace Any;
 
-class SingleProcess extends \Mrden\Fork\Contracts\Process
+class SingleProcess extends \Mrden\Forker\Contracts\Process
 {
-    use \Mrden\Fork\Traits\ProcessFileStorageTrait;
+    use \Mrden\Forker\Traits\ProcessFileStorageTrait;
 
     public function execute(): void
     {
@@ -41,124 +41,33 @@ class SingleProcess extends \Mrden\Fork\Contracts\Process
 }
 ```
 ### Start in code
+
 ```php
 $context = 'any parent code context data';
 $singleProcess = new \Any\SingleProcess([
     'context' => $context
 ]);
-$forker = new \Mrden\Fork\Forker($singleProcess);
-$forker->run(3);
+$forker = new \Mrden\Forker\Forker($singleProcess);
+$forker->fork(3);
 // any code in this parent process
 ```
 ### Start via `bin/forker`
 `php bin/forker --process="\Any\SingleProcess" --count=3 --process-context="any context data"`
 
-## Fork single daemon process in 3 clones
-```php
-namespace Any;
-
-class SingleDaemonProcess extends \Mrden\Fork\Contracts\DaemonProcess
-{
-    use \Mrden\Fork\Traits\ProcessFileStorageTrait;
-    
-    /**
-     * in sec
-     */
-    protected $period = 5;
-    
-    protected function job(): void
-    {
-        echo 'I\'m the code of iteration daemon process';
-    }
-    
-    protected function checkParams(): void
-    {
-    }
-
-    protected function prepare(): void
-    {
-    }
-}
-```
-### Start in code
-```php
-$singleProcess = new \Any\SingleDaemonProcess();
-$forker = new \Mrden\Fork\Forker($singleProcess);
-$forker->run(3);
-```
-### Start via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonProcess" --count=3`
-
 ### Stop via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonProcess" --stop=1`
+`php bin/forker --process="\Any\SingleProcess" --stop=1 --process-context="any context data"`
 
 ### Stop only 2 clones via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonProcess" --stop=1 --count=2`
+`php bin/forker --process="\Any\SingleProcess" --stop=1 --count=2 --process-context="any context data"`
 
 ### Stop only 2-nd clone via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonProcess" --stop=1 --clone_number=2`
+`php bin/forker --process="\Any\SingleProcess" --stop=1 --clone_number=2 --process-context="any context data"`
 
-### Restart all clones via `bin/forker` 
-`php bin/forker --process="\Any\SingleDaemonProcess" --restart=1`
+### Restart all clones via `bin/forker`
+`php bin/forker --process="\Any\SingleProcess" --restart=1 --process-context="any context data"`
 
 ### Restart only 2 clones via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonProcess" --restart=1 --count=2`
+`php bin/forker --process="\Any\SingleProcess" --restart=1 --count=2 --process-context="any context data"`
 
 ### Restart only 2-nd clone via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonProcess" --restart=1 --clone_number=2`
-
-## Start single daemon watcher process
-```php
-namespace Any;
-
-class SingleDaemonWatcherProcess extends \Mrden\Fork\Contracts\DaemonWatcherProcess
-{
-    use \Mrden\Fork\Traits\ProcessFileStorageTrait;
-    
-    protected function processes(): array
-    {
-        return return [
-            [
-                'process' => \Any\SingleProcess::class,
-                'params' => [
-                    'time' => 11,
-                ],
-                'count' => 1,
-            ],
-            [
-                'process' => \Any\SingleDaemonProcess::class,
-                'count' => 2,
-            ],
-        ];
-    }
-
-    protected function prepare(): void
-    {
-    }
-}
-```
-Daemon watcher process forked only in 1 clone.
-
-### Start in code
-```php
-$singleProcess = new \Any\SingleDaemonWatcherProcess();
-$forker = new \Mrden\Fork\Forker($singleProcess);
-$forker->run();
-```
-
-### Start via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonWatcherProcess"`
-
-### Stop via `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonWatcherProcess" --stop=1`
-will be stopped all (self and child process)
-
-### Stop via `kill`
-* `kill PID` or `kill -15 PID` - will be stopped only daemon watcher, child process continue to work
-* `kill -10 PID` - will be stopped all (self and child process)
-
-### Restart only daemon watcher process vai `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonWatcherProcess" --restart=1`
-
-### Restart with restart children processes vai `bin/forker`
-`php bin/forker --process="\Any\SingleDaemonWatcherProcess" --restart=1 --process-restartChildren=1`
+`php bin/forker --process="\Any\SingleProcess" --restart=1 --clone_number=2 --process-context="any context data"`

@@ -1,6 +1,6 @@
 <?php
 
-namespace Mrden\Fork\Helpers;
+namespace Mrden\Forker\Helpers;
 
 class SysInfo
 {

@@ -2,7 +2,6 @@
   "name": "mrden/forker",
   "description": "Process forker",
   "type": "library",
-  "version": "0.2.0",
   "keywords": [
     "forker",
     "fork",
@@ -31,12 +30,12 @@
   ],
   "autoload": {
     "psr-4": {
-      "Mrden\\Fork\\": "src"
+      "Mrden\\Forker\\": "src"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Tests\\": "tests/"
+      "Tests\\": "tests"
     }
   },
   "bin": [

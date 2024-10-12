@@ -1,14 +1,9 @@
 <?php
 
-namespace Mrden\Fork\Contracts;
+namespace Mrden\Forker\Contracts;
 
-use Mrden\Fork\Contracts\Interfaces\Cloneable;
-use Mrden\Fork\Contracts\Interfaces\Forkable;
-use Mrden\Fork\Contracts\Interfaces\Parental;
-use Mrden\Fork\Contracts\Interfaces\Unique;
-use Mrden\Fork\Exceptions\ForkException;
-use Mrden\Fork\Forker;
-use Mrden\Fork\Process\ExecCmdProcess;
+use Mrden\Forker\Forker;
+use Mrden\Forker\Process\ExecCmdProcess;
 
 abstract class Process implements Forkable, Cloneable, Unique
 {
@@ -21,10 +16,6 @@ abstract class Process implements Forkable, Cloneable, Unique
      * @var array
      */
     protected $params;
-    /**
-     * @var Parental|Process|null
-     */
-    private $parentProcess;
     /**
      * Number running clone
      * @psalm-var positive-int
@@ -41,18 +32,14 @@ abstract class Process implements Forkable, Cloneable, Unique
     /**
      * @throws \Exception
      */
-    public function __construct(array $params = [], ?Parental $parentProcess = null)
+    public function __construct(array $params = [])
     {
         $this->params = $params;
-        $this->parentProcess = $parentProcess;
         $this->checkParams();
     }
 
     public function run(int $cloneNumber = 1): void
     {
-        if ($this->parentProcess) {
-            $this->parentProcess->setIsChildContext(true);
-        }
         $this->runningCloneNumber = $cloneNumber;
         \cli_set_process_title(sprintf('%s (%d)', $this->title(), $cloneNumber));
 
@@ -95,7 +82,7 @@ abstract class Process implements Forkable, Cloneable, Unique
     }
 
     /**
-     * @throws ForkException
+     * @throws \Exception
      */
     public function shutdownHandler(int $number): void
     {
@@ -105,7 +92,7 @@ abstract class Process implements Forkable, Cloneable, Unique
                 'cmd' => $this->getCommand($number),
             ]);
             $forker = new Forker($restartProcess);
-            $forker->run();
+            $forker->fork();
         }
     }
 
@@ -143,6 +130,7 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     protected function terminate(): void
     {
+        $this->stop();
     }
 
     protected function stop(?callable $afterStop = null): void
@@ -168,16 +156,9 @@ abstract class Process implements Forkable, Cloneable, Unique
         return $this->runningCloneNumber;
     }
 
-    private function title(): string
+    protected function title(): string
     {
-        $title = \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
-        if ($this->parentProcess) {
-            $parentPid = $this->parentProcess->pid();
-            if ($parentPid) {
-                $title = "$parentPid => $title";
-            }
-        }
-        return $title;
+        return \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
     }
 
     protected function paramToString(): string

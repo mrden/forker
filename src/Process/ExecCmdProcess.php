@@ -1,9 +1,9 @@
 <?php
 
-namespace Mrden\Fork\Process;
+namespace Mrden\Forker\Process;
 
-use Mrden\Fork\Contracts\Process;
-use Mrden\Fork\Traits\ProcessFileStorageTrait;
+use Mrden\Forker\Contracts\Process;
+use Mrden\Forker\Traits\ProcessFileStorageTrait;
 
 class ExecCmdProcess extends Process
 {
@@ -40,6 +40,6 @@ class ExecCmdProcess extends Process
         if (\strpos($command, '> /dev/null 2>&1 &') === false) {
             $command = $command . ' > /dev/null 2>&1 &';
         }
-        \exec($command, $o, $rc);
+        \exec($command);
     }
 }

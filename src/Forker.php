@@ -1,12 +1,13 @@
 <?php
 
-namespace Mrden\Fork;
+namespace Mrden\Forker;
 
-use Mrden\Fork\Contracts\Interfaces\Cloneable;
-use Mrden\Fork\Contracts\Interfaces\Forkable;
-use Mrden\Fork\Contracts\Interfaces\SpecificCountCloneable;
-use Mrden\Fork\Exceptions\ForkException;
-use Mrden\Fork\Helpers\SysInfo;
+use Mrden\Forker\Contracts\Cloneable;
+use Mrden\Forker\Contracts\Forkable;
+use Mrden\Forker\Contracts\Preparable;
+use Mrden\Forker\Contracts\SpecificCountCloneable;
+use Mrden\Forker\Exceptions\ForkException;
+use Mrden\Forker\Helpers\SysInfo;
 
 final class Forker
 {
@@ -32,23 +33,35 @@ final class Forker
      * @psalm-return list<positive-int>
      * @throws ForkException
      */
-    public function run(int $count = 1, int $number = null): array
+    public function fork(int $cloneCount = 1, int $number = null): array
+    {
+        if ($this->process instanceof Preparable) {
+            $this->process->prepareToFork();
+        }
+        return $this->runProcess($cloneCount, $number);
+    }
+
+    /**
+     * @psalm-return list<positive-int>
+     * @throws ForkException
+     */
+    private function runProcess(int $cloneCount = 1, int $number = null): array
     {
         $processedPids = [];
-        $count = $this->cloneCount($count);
+        $cloneCount = $this->cloneCount($cloneCount);
         \pcntl_signal(\SIGCHLD, \SIG_IGN);
         if (!$number) {
-            for ($number = 1; $number <= $count; $number++) {
+            for ($number = 1; $number <= $cloneCount; $number++) {
                 $processedPids = \array_values(\array_unique(\array_merge(
                     $processedPids,
-                    $this->run($count, $number)
+                    $this->runProcess($cloneCount, $number)
                 )));
             }
         } else {
-            if ($number > $count) {
+            if ($number > $cloneCount) {
                 return $processedPids;
             }
-            $pid = $this->runItem($number);
+            $pid = $this->runCloneItem($number);
             if ($pid) {
                 $processedPids[] = $pid;
             }
@@ -81,7 +94,7 @@ final class Forker
                 \posix_kill($currentPid, $restart ? \SIGUSR2 : \SIGUSR1);
                 $processedPids[] = $currentPid;
             } elseif ($restart) {
-                $pid = $this->runItem($number);
+                $pid = $this->runCloneItem($number);
                 if ($pid) {
                     $processedPids[] = $pid;
                 }
@@ -121,7 +134,7 @@ final class Forker
      * @psalm-return positive-int|null
      * @throws ForkException
      */
-    private function runItem(int $number): ?int
+    private function runCloneItem(int $number): ?int
     {
         if ($this->isRunning($number)) {
             return null;

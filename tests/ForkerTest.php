@@ -2,18 +2,18 @@
 
 namespace Tests;
 
-use Mrden\Fork\Forker;
-use Mrden\Fork\Process\CallableProcess;
-use Tests\src\TestDaemonProcess;
-use Tests\src\TestSingleProcess;
+use Mrden\Forker\Forker;
+use Mrden\Forker\Process\CallableProcess;
+use PHPUnit\Framework\ExpectationFailedException;
+use PHPUnit\Framework\TestCase;
 
-final class ForkerTest extends \PHPUnit\Framework\TestCase
+final class ForkerTest extends TestCase
 {
     public function testForkingProcess()
     {
         $process = new TestSingleProcess();
         $forker = new Forker($process);
-        $forker->run();
+        $forker->fork();
         \sleep(1);
         $pid = $process->pid(1);
         $this->assertIsInt($pid);
@@ -27,7 +27,7 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
     {
         $process = new TestSingleProcess(['time' => 3]);
         $forker = new Forker($process);
-        $forker->run(3);
+        $forker->fork(3);
         \sleep(1);
         $this->assertIsInt($process->pid(1));
         $this->assertIsInt($process->pid(2));
@@ -42,45 +42,28 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
 
     public function testForkingCallable()
     {
-        $file = __DIR__ . '/storage/callable_test.txt';
+        $file = __DIR__ . '/../.mrden/callable_test.txt';
         if (\file_exists($file)) {
             \unlink($file);
         }
-        $text = 'callable test text';
+        $text = \date('Y-m-d H:i:s') . ': callable test text';
         $forker = new Forker(new CallableProcess(function (CallableProcess $process) use ($file, $text) {
             \file_put_contents($file, $text);
         }));
-        $forker->run();
+        $forker->fork();
         \sleep(1);
         $this->assertStringEqualsFile($file, $text);
         $forker->stop(Forker::STOP_ALL);
-    }
-
-    public function testRestorePidInStorage()
-    {
-        $process = new TestDaemonProcess(['test-param' => 50]);
-        $forker = new Forker($process);
-        $forker->run();
-        $pidFile = __DIR__ . '/storage/forker/a057668c-c305-5815-ab57-a69c2ba5197b/1.storage';
-        \sleep(1);
-        if (\file_exists($pidFile)) {
-            \unlink($pidFile);
-        }
-        $this->assertTrue($process->pid(1) == 0);
-        \sleep(5);
-        $this->assertTrue($process->pid(1) > 0);
-        $forker->stop(Forker::STOP_ALL);
-        \sleep(3);
     }
 
     public function testNotStartProcessIfExecuting()
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->run();
+        $forker1->fork();
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertEmpty($forker2->run());
+        $this->assertEmpty($forker2->fork());
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -89,10 +72,10 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->run();
+        $forker1->fork();
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertCount(1, $forker2->run(2));
+        $this->assertCount(1, $forker2->fork(2));
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -101,10 +84,10 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->run(2);
+        $forker1->fork(2);
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertCount(4, $forker2->run(6));
+        $this->assertCount(4, $forker2->fork(6));
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -115,7 +98,31 @@ final class ForkerTest extends \PHPUnit\Framework\TestCase
         $forker1 = new Forker($process);
         $attemptCount = 8;
         $this->assertNotEquals($attemptCount, $process->maxCloneCount());
-        $this->assertCount($process->maxCloneCount(), $forker1->run($attemptCount));
+        $this->assertCount($process->maxCloneCount(), $forker1->fork($attemptCount));
         $forker1->stop(Forker::STOP_ALL);
+    }
+
+    public function testMultiThreadArrayDataHandlerProcess()
+    {
+        $countStorageFile = __DIR__ . '/../.mrden/count_read_file.txt';
+        if (\file_exists($countStorageFile)) {
+            \unlink($countStorageFile);
+        }
+        $processDataFile = __DIR__ . '/../.mrden/process_data.csv';
+        if (\file_exists($processDataFile)) {
+            \unlink($processDataFile);
+        }
+        $process = new TestMultiThreadArrayDataHandleProcess();
+        $forker = new Forker($process);
+        $forker->fork();
+        \sleep(10);
+        $forker->stop(Forker::STOP_ALL);
+
+        $currentCount = 0;
+        if (\file_exists($countStorageFile)) {
+            $currentCount = (int) \file_get_contents($countStorageFile);
+        }
+
+        $this->assertEquals(1, $currentCount);
     }
 }

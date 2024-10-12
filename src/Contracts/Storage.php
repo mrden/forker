@@ -1,8 +1,7 @@
 <?php
 
-namespace Mrden\Fork\Contracts;
+namespace Mrden\Forker\Contracts;
 
-use Mrden\Fork\Contracts\Interfaces\Unique;
 use Ramsey\Uuid\Uuid;
 
 abstract class Storage

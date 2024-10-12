@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 
-use Mrden\Fork\Contracts\Interfaces\Forkable;
-use Mrden\Fork\Forker;
+use Mrden\Forker\Contracts\Forkable;
+use Mrden\Forker\Forker;
 
 // Detect autoload location
 $autoload = [
@@ -97,7 +97,7 @@ try {
     } elseif ($stop) {
         $forker->stop($count, $cloneNumber);
     } else {
-        $forker->run($count, $cloneNumber);
+        $forker->fork($count, $cloneNumber);
     }
 } catch (\Exception $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
