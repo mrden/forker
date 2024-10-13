@@ -13,7 +13,7 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess();
         $forker = new Forker($process);
-        $forker->fork();
+        $forker->run();
         \sleep(1);
         $pid = $process->pid(1);
         $this->assertIsInt($pid);
@@ -27,7 +27,7 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess(['time' => 3]);
         $forker = new Forker($process);
-        $forker->fork(3);
+        $forker->run(3);
         \sleep(1);
         $this->assertIsInt($process->pid(1));
         $this->assertIsInt($process->pid(2));
@@ -50,7 +50,7 @@ final class ForkerTest extends TestCase
         $forker = new Forker(new CallableProcess(function (CallableProcess $process) use ($file, $text) {
             \file_put_contents($file, $text);
         }));
-        $forker->fork();
+        $forker->run();
         \sleep(1);
         $this->assertStringEqualsFile($file, $text);
         $forker->stop(Forker::STOP_ALL);
@@ -60,10 +60,10 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->fork();
+        $forker1->run();
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertEmpty($forker2->fork());
+        $this->assertEmpty($forker2->run());
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -72,10 +72,10 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->fork();
+        $forker1->run();
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertCount(1, $forker2->fork(2));
+        $this->assertCount(1, $forker2->run(2));
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -84,10 +84,10 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->fork(2);
+        $forker1->run(2);
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertCount(4, $forker2->fork(6));
+        $this->assertCount(4, $forker2->run(6));
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -98,7 +98,7 @@ final class ForkerTest extends TestCase
         $forker1 = new Forker($process);
         $attemptCount = 8;
         $this->assertNotEquals($attemptCount, $process->maxCloneCount());
-        $this->assertCount($process->maxCloneCount(), $forker1->fork($attemptCount));
+        $this->assertCount($process->maxCloneCount(), $forker1->run($attemptCount));
         $forker1->stop(Forker::STOP_ALL);
     }
 
@@ -114,7 +114,7 @@ final class ForkerTest extends TestCase
         }
         $process = new TestMultiThreadArrayDataHandleProcess();
         $forker = new Forker($process);
-        $forker->fork();
+        $forker->run();
         \sleep(10);
         $forker->stop(Forker::STOP_ALL);
 

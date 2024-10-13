@@ -92,7 +92,7 @@ abstract class Process implements Forkable, Cloneable, Unique
                 'cmd' => $this->getCommand($number),
             ]);
             $forker = new Forker($restartProcess);
-            $forker->fork();
+            $forker->run();
         }
     }
 

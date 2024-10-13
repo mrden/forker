@@ -33,7 +33,7 @@ final class Forker
      * @psalm-return list<positive-int>
      * @throws ForkException
      */
-    public function fork(int $cloneCount = 1, int $number = null): array
+    public function run(int $cloneCount = 1, int $number = null): array
     {
         if ($this->process instanceof Preparable) {
             $this->process->prepareToFork();

@@ -97,7 +97,7 @@ try {
     } elseif ($stop) {
         $forker->stop($count, $cloneNumber);
     } else {
-        $forker->fork($count, $cloneNumber);
+        $forker->run($count, $cloneNumber);
     }
 } catch (\Exception $e) {
     \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);

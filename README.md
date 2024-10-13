@@ -12,7 +12,7 @@ $callable = new \Mrden\Forker\Process\CallableProcess(static function () use ($c
     echo 'context from parent process ' . $context;
 });
 $forker = new \Mrden\Forker\Forker($callable);
-$forker->fork();
+$forker->run();
 // any code in this parent process
 ```
 
@@ -48,7 +48,7 @@ $singleProcess = new \Any\SingleProcess([
     'context' => $context
 ]);
 $forker = new \Mrden\Forker\Forker($singleProcess);
-$forker->fork(3);
+$forker->run(3);
 // any code in this parent process
 ```
 ### Start via `bin/forker`
