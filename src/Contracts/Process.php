@@ -28,6 +28,10 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     protected $needRestart = false;
     protected $excludeParamsKey = [];
+    /**
+     * @var null|string
+     */
+    protected $nameProcess;
 
     /**
      * @throws \Exception
@@ -163,7 +167,7 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     private function defaultTitle(): string
     {
-        return \get_class($this) . ($this->params ? ' ' . $this->paramToString() : '');
+        return ($this->nameProcess ?? \get_class($this)) . ($this->params ? ' ' . $this->paramToString() : '');
     }
 
     protected function paramToString(): string
