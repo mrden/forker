@@ -136,8 +136,9 @@ final class Forker
      */
     private function runCloneItem(int $number): ?int
     {
-        if ($this->isRunning($number)) {
-            return null;
+        $runningPid = $this->runningPid($number);
+        if ($runningPid) {
+            return $runningPid;
         }
         $pid = \pcntl_fork();
         switch ($pid) {
@@ -160,12 +161,12 @@ final class Forker
     /**
      * @psalm-param positive-int $number
      */
-    private function isRunning(int $number): bool
+    private function runningPid(int $number): ?int
     {
-        $pid = $this->process->pid($number);
-        if ($pid) {
-            return \posix_kill($pid, 0);
+        $runningPid = $this->process->pid($number);
+        if ($runningPid) {
+            return \posix_kill($runningPid, 0) ? $runningPid : null;
         }
-        return false;
+        return null;
     }
 }

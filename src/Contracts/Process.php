@@ -41,7 +41,7 @@ abstract class Process implements Forkable, Cloneable, Unique
     public function run(int $cloneNumber = 1): void
     {
         $this->runningCloneNumber = $cloneNumber;
-        \cli_set_process_title(sprintf('%s (%d)', $this->title() ?: $this->defaultTitle(), $cloneNumber));
+        \cli_set_process_title(\sprintf('%s (%d)', $this->title() ?: $this->defaultTitle(), $cloneNumber));
 
         \pcntl_signal(\SIGTERM, [$this, 'signalHandler']);
         \pcntl_signal(\SIGUSR1, [$this, 'signalHandler']);

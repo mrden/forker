@@ -24,12 +24,12 @@ for ($i = 0; $i < \count($autoload); $i++) {
     }
 }
 if (empty($includePath)) {
-    \fwrite(\STDERR, "Error: The `autoload.php` file not found in:" . PHP_EOL);
+    \fwrite(\STDERR, "Error: The `autoload.php` file not found in:" . \PHP_EOL);
     for ($i = 0; $i < \count($autoload); $i++) {
         $a = \file_exists($autoload[$i]) ? 'true' : 'false';
         $b = \is_dir($includes[$i]) ? 'true' : 'false';
-        \fwrite(\STDERR, "  - file_exists($autoload[$i]) = $a" . PHP_EOL);
-        \fwrite(\STDERR, "    is_dir($includes[$i]) = $b") . PHP_EOL;
+        \fwrite(\STDERR, "  - file_exists($autoload[$i]) = $a" . \PHP_EOL);
+        \fwrite(\STDERR, "    is_dir($includes[$i]) = $b") . \PHP_EOL;
     }
     exit(1);
 }
@@ -76,12 +76,12 @@ if ($count === null) {
 }
 
 if (!$processClassName || !\class_exists($processClassName)) {
-    \fwrite(\STDERR, "Error: The --process \"$processClassName\" not found." . PHP_EOL);
+    \fwrite(\STDERR, "Error: The --process \"$processClassName\" not found." . \PHP_EOL);
     exit(1);
 }
 
 if (!\is_numeric($count) || !$count) {
-    \fwrite(\STDERR, "Error: Incorrect --count value \"$count\"." . PHP_EOL);
+    \fwrite(\STDERR, "Error: Incorrect --count value \"$count\"." . \PHP_EOL);
     exit(1);
 }
 
@@ -97,9 +97,10 @@ try {
     } elseif ($stop) {
         $forker->stop($count, $cloneNumber);
     } else {
-        $forker->run($count, $cloneNumber);
+        $runningPids = $forker->run($count, $cloneNumber);
+        \fwrite(\STDOUT, 'Running pid(s): ' . \implode(', ', $runningPids) . \PHP_EOL);
     }
 } catch (\Exception $e) {
-    \fwrite(\STDERR, "Error: {$e->getMessage()}" . PHP_EOL);
+    \fwrite(\STDERR, "Error: {$e->getMessage()}" . \PHP_EOL);
     exit(1);
 }
