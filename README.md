@@ -27,8 +27,7 @@ class SingleProcess extends \Mrden\Forker\Contracts\Process
 
     public function execute(): void
     {
-        $params = $this->getParams();
-        echo 'context from parent process ' . ($params['context'] ?? '');
+        echo 'context from parent process ' . ($this->params['context'] ?? '');
     }
 
     protected function prepare(): void

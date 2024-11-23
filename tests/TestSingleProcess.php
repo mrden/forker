@@ -21,8 +21,7 @@ class TestSingleProcess extends Process
 
     public function execute(): void
     {
-        $params = $this->getParams();
-        \sleep($params['time'] ?? 11);
+        \sleep($this->params['time'] ?? 11);
     }
 
     protected function prepare(): void

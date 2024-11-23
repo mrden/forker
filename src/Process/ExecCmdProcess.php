@@ -14,26 +14,19 @@ class ExecCmdProcess extends Process
      */
     protected function checkParams(): void
     {
-        $params = $this->getParams();
-        if (!isset($params['cmd'])) {
+        if (!isset($this->params['cmd'])) {
             throw new \LogicException('Param "cmd" required');
         }
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function prepare(): void
     {
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(): void
     {
         \sleep(1);
-        $command = $this->getParams()['cmd'] ?? null;
+        $command = $this->params['cmd'] ?? null;
         if (!$command) {
             return;
         }

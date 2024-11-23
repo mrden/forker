@@ -27,6 +27,7 @@ abstract class Process implements Forkable, Cloneable, Unique
     private $afterStopHandlers = [];
 
     protected $needRestart = false;
+
     protected $excludeParamsKey = [];
     /**
      * @var null|string
@@ -74,15 +75,7 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     public function uuid(): string
     {
-        $params = [];
-        foreach ($this->params as $key => $param) {
-            if (\in_array($key, $this->excludeParamsKey)) {
-                continue;
-            }
-            $params[$key] = $param;
-        }
-
-        return \get_class($this) . \serialize($params);
+        return \get_class($this) . \serialize($this->getParamsWithoutExclude());
     }
 
     /**
@@ -118,7 +111,7 @@ abstract class Process implements Forkable, Cloneable, Unique
     protected function getCommand(int $number): string
     {
         $forkerBinary = __DIR__ . '/../../bin/forker';
-        $command = sprintf(
+        $command = \sprintf(
             '%s %s --process="%s" --count=%d --clone_number=%d',
             PHP_BINARY,
             $forkerBinary,
@@ -150,11 +143,6 @@ abstract class Process implements Forkable, Cloneable, Unique
         $this->stop();
     }
 
-    protected function getParams(): array
-    {
-        return $this->params;
-    }
-
     protected function getRunningCloneNumber(): int
     {
         return $this->runningCloneNumber;
@@ -167,13 +155,25 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     private function defaultTitle(): string
     {
-        return ($this->nameProcess ?? \get_class($this)) . ($this->params ? ' ' . $this->paramToString() : '');
+        return ($this->nameProcess ?? \get_class($this)) . $this->paramsToString();
     }
 
-    protected function paramToString(): string
+    protected function getParamsWithoutExclude(): array
     {
         $params = [];
         foreach ($this->params as $key => $param) {
+            if (\in_array($key, $this->excludeParamsKey)) {
+                continue;
+            }
+            $params[$key] = $param;
+        }
+        return $params;
+    }
+
+    protected function paramsToString(): string
+    {
+        $params = [];
+        foreach ($this->getParamsWithoutExclude() as $key => $param) {
             if (\mb_strwidth($param) > 25) {
                 $params[$key] = \mb_strimwidth($param, 0, 10, '...') . \mb_substr($param, -15);
             } else {
