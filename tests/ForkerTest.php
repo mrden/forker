@@ -4,7 +4,6 @@ namespace Tests;
 
 use Mrden\Forker\Forker;
 use Mrden\Forker\Process\CallableProcess;
-use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\TestCase;
 
 final class ForkerTest extends TestCase
@@ -60,10 +59,11 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->run();
+        $pids1 = $forker1->run();
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertEmpty($forker2->run());
+        $pids2 = $forker2->run();
+        $this->assertEquals($pids1, $pids2);
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
@@ -72,22 +72,13 @@ final class ForkerTest extends TestCase
     {
         $process = new TestSingleProcess(['time' => 25]);
         $forker1 = new Forker($process);
-        $forker1->run();
+        $pids1 = $forker1->run();
         \sleep(1);
         $forker2 = new Forker($process);
-        $this->assertCount(1, $forker2->run(2));
-        $forker1->stop(Forker::STOP_ALL);
-        $forker2->stop(Forker::STOP_ALL);
-    }
-
-    public function testRunNotRunningProcesses()
-    {
-        $process = new TestSingleProcess(['time' => 25]);
-        $forker1 = new Forker($process);
-        $forker1->run(2);
-        \sleep(1);
-        $forker2 = new Forker($process);
-        $this->assertCount(4, $forker2->run(6));
+        $pids2 = $forker2->run(2);
+        $this->assertCount(1, $pids1);
+        $this->assertCount(2, $pids2);
+        $this->assertEquals($pids1[0], $pids2[0]);
         $forker1->stop(Forker::STOP_ALL);
         $forker2->stop(Forker::STOP_ALL);
     }
