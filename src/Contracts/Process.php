@@ -62,12 +62,19 @@ abstract class Process implements Forkable, Cloneable, Unique
         }
     }
 
+    /**
+     * @psalm-param positive-int|null $cloneNumber
+     * @psalm-return positive-int
+     */
     public function pid(int $cloneNumber = null): int
     {
         $cloneNumber = $cloneNumber ?? $this->getRunningCloneNumber();
         return $this->pidStorage()->get($cloneNumber);
     }
 
+    /**
+     * @psalm-return positive-int
+     */
     public function maxCloneCount(): int
     {
         return $this->maxCloneCount;
@@ -79,6 +86,7 @@ abstract class Process implements Forkable, Cloneable, Unique
     }
 
     /**
+     * @psalm-param positive-int $number
      * @throws \Exception
      */
     public function shutdownHandler(int $number): void
@@ -143,6 +151,9 @@ abstract class Process implements Forkable, Cloneable, Unique
         $this->stop();
     }
 
+    /**
+     * @psalm-return positive-int
+     */
     protected function getRunningCloneNumber(): int
     {
         return $this->runningCloneNumber;
