@@ -1,4 +1,5 @@
 .mrden
+.context
 .idea
 vendor
 composer.lock
