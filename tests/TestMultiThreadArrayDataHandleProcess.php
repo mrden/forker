@@ -3,21 +3,21 @@
 namespace Tests;
 
 use Mrden\Forker\Contracts\MultiThreadHandleProcess;
-use Mrden\Forker\Contracts\Storage;
-use Mrden\Forker\Storage\FileStorage;
-use Mrden\Forker\Traits\ProcessFileStorageTrait;
+use Mrden\Forker\Contracts\PidStorage;
+use Mrden\Forker\Storage\FilePidStorage;
+use Mrden\Forker\Traits\FilePidStorageTrait;
 
 /**
  * @template-extends MultiThreadHandleProcess<iterable{posting_number: string, status: string}>
  */
 class TestMultiThreadArrayDataHandleProcess extends MultiThreadHandleProcess
 {
-    use ProcessFileStorageTrait;
+    use FilePidStorageTrait;
 
     /**
      * @psalm-var positive-int
      */
-    protected $maxCloneCount = 12;
+    protected int $maxCloneCount = 12;
 
     protected function checkParams(): void
     {
@@ -51,10 +51,10 @@ class TestMultiThreadArrayDataHandleProcess extends MultiThreadHandleProcess
         ]) . \PHP_EOL, FILE_APPEND | \LOCK_EX);
     }
 
-    protected function pidStorage(): Storage
+    protected function pidStorage(): PidStorage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FileStorage($this, __DIR__ . '/../.mrden');
+            $this->pidStorage = new FilePidStorage($this, __DIR__ . '/../.mrden');
         }
         return $this->pidStorage;
     }

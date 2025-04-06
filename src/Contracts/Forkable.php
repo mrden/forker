@@ -11,7 +11,6 @@ interface Forkable
 
     /**
      * @psalm-param positive-int|null $cloneNumber
-     * @psalm-return positive-int
      */
-    public function pid(int $cloneNumber = null): int;
+    public function pid(int $cloneNumber = null): ?int;
 }

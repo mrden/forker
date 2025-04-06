@@ -3,26 +3,26 @@
 namespace Mrden\Forker\Process;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Traits\ProcessFileStorageTrait;
+use Mrden\Forker\Traits\FilePidStorageTrait;
 
 final class CallableProcess extends Process
 {
-    use ProcessFileStorageTrait;
+    use FilePidStorageTrait;
 
     /**
-     * @psalm-var callable(CallableProcess): void
+     * @var \Closure(CallableProcess): void
      */
-    private $logic;
+    private \Closure $logic;
 
-    public function __construct(callable $logic, array $params = [])
+    public function __construct(\Closure $logic, array $params = [])
     {
         $this->logic = $logic;
         parent::__construct($params);
     }
 
-    public function uuid(): string
+    public function id(): string
     {
-        return \spl_object_hash((object) $this->logic) . parent::uuid();
+        return \md5(\spl_object_hash($this->logic) . parent::id());
     }
 
     protected function checkParams(): void

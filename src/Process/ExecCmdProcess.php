@@ -3,15 +3,12 @@
 namespace Mrden\Forker\Process;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Traits\ProcessFileStorageTrait;
+use Mrden\Forker\Traits\FilePidStorageTrait;
 
 class ExecCmdProcess extends Process
 {
-    use ProcessFileStorageTrait;
+    use FilePidStorageTrait;
 
-    /**
-     * @inheritDoc
-     */
     protected function checkParams(): void
     {
         if (!isset($this->params['cmd'])) {
@@ -27,10 +24,10 @@ class ExecCmdProcess extends Process
     {
         \sleep(1);
         $command = $this->params['cmd'] ?? null;
-        if (!$command) {
+        if ($command === null) {
             return;
         }
-        if (\strpos($command, '> /dev/null 2>&1 &') === false) {
+        if (!\str_contains($command, '> /dev/null 2>&1 &')) {
             $command = $command . ' > /dev/null 2>&1 &';
         }
         \exec($command);

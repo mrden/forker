@@ -30,7 +30,8 @@ final class Forker
     }
 
     /**
-     * @psalm-return list<positive-int>
+     * @psalm-param positive-int|null $number
+     * @return list<int>
      * @throws ForkException
      */
     public function run(int $cloneCount = 1, int $number = null): array
@@ -42,7 +43,8 @@ final class Forker
     }
 
     /**
-     * @psalm-return list<positive-int>
+     * @psalm-param positive-int|null $number
+     * @return list<int>
      * @throws ForkException
      */
     private function runProcess(int $cloneCount = 1, int $number = null): array
@@ -50,7 +52,7 @@ final class Forker
         $processedPids = [];
         $cloneCount = $this->cloneCount($cloneCount);
         \pcntl_signal(\SIGCHLD, \SIG_IGN);
-        if (!$number) {
+        if ($number === null) {
             for ($number = 1; $number <= $cloneCount; $number++) {
                 $processedPids = \array_values(\array_unique(\array_merge(
                     $processedPids,
@@ -61,17 +63,15 @@ final class Forker
             if ($number > $cloneCount) {
                 return $processedPids;
             }
-            $pid = $this->runCloneItem($number);
-            if ($pid) {
-                $processedPids[] = $pid;
-            }
+            $processedPids[] = $this->runCloneItem($number);
         }
 
         return $processedPids;
     }
 
     /**
-     * @psalm-return list<positive-int>
+     * @psalm-param positive-int|null $number
+     * @return list<int>
      * @throws ForkException
      */
     public function stop(int $count, int $number = null, bool $restart = false): array
@@ -94,17 +94,15 @@ final class Forker
                 \posix_kill($currentPid, $restart ? \SIGUSR2 : \SIGUSR1);
                 $processedPids[] = $currentPid;
             } elseif ($restart) {
-                $pid = $this->runCloneItem($number);
-                if ($pid) {
-                    $processedPids[] = $pid;
-                }
+                $processedPids[] = $this->runCloneItem($number);
             }
         }
         return $processedPids;
     }
 
     /**
-     * @psalm-return list<positive-int>
+     * @psalm-param positive-int|null $number
+     * @return list<int>
      * @throws ForkException
      */
     public function restart(int $count, int $number = null): array
@@ -114,30 +112,30 @@ final class Forker
 
     private function cloneCount(int $count): int
     {
-        if ($this->process instanceof Cloneable) {
-            if ($count == self::STOP_ALL) {
-                $count = $this->process->maxCloneCount();
-            } else {
-                if ($this->process instanceof SpecificCountCloneable) {
-                    $count = $this->process->countOfClones();
-                }
-                $count = \min($count, $this->process->maxCloneCount());
-            }
-        } else {
-            $count = 1;
+        if (!$this->process instanceof Cloneable) {
+            return 1;
         }
+
+        if ($count == self::STOP_ALL) {
+            $count = $this->process->maxCloneCount();
+        } else {
+            if ($this->process instanceof SpecificCountCloneable) {
+                $count = $this->process->countOfClones();
+            }
+            $count = \min($count, $this->process->maxCloneCount());
+        }
+
         return $count;
     }
 
     /**
      * @psalm-param positive-int $number
-     * @psalm-return positive-int|null
      * @throws ForkException
      */
-    private function runCloneItem(int $number): ?int
+    private function runCloneItem(int $number): int
     {
         $runningPid = $this->runningPid($number);
-        if ($runningPid) {
+        if ($runningPid !== null) {
             return $runningPid;
         }
         $pid = \pcntl_fork();
@@ -164,7 +162,7 @@ final class Forker
     private function runningPid(int $number): ?int
     {
         $runningPid = $this->process->pid($number);
-        if ($runningPid) {
+        if ($runningPid !== null) {
             return \posix_kill($runningPid, 0) ? $runningPid : null;
         }
         return null;

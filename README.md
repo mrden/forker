@@ -23,7 +23,7 @@ namespace Any;
 
 class SingleProcess extends \Mrden\Forker\Contracts\Process
 {
-    use \Mrden\Forker\Traits\ProcessFileStorageTrait;
+    use \Mrden\Forker\Traits\FilePidStorageTrait;
 
     public function execute(): void
     {

@@ -12,17 +12,17 @@ abstract class MultiThreadHandleProcess extends Process implements SpecificCount
     /**
      * @psalm-var positive-int
      */
-    protected $maxCloneCount = 16;
+    protected int $maxCloneCount = 16;
 
     /**
-     * @psalm-var positive-int
+     * @psalm-var int<1, max>
      */
-    private $countCpu;
+    private int $countCpu;
 
     /**
      * @psalm-var iterable<T>
      */
-    private $data = [];
+    private iterable $data = [];
 
     /**
      * @throws \Exception

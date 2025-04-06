@@ -3,17 +3,14 @@
 namespace Tests;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Contracts\Storage;
-use Mrden\Forker\Storage\FileStorage;
+use Mrden\Forker\Contracts\PidStorage;
+use Mrden\Forker\Storage\FilePidStorage;
 
 class TestSingleProcess extends Process
 {
-    /**
-     * @var FileStorage
-     */
-    protected $pidStorage;
+    protected FilePidStorage $pidStorage;
 
-    protected $maxCloneCount = 6;
+    protected int $maxCloneCount = 6;
 
     protected function checkParams(): void
     {
@@ -28,10 +25,10 @@ class TestSingleProcess extends Process
     {
     }
 
-    protected function pidStorage(): Storage
+    protected function pidStorage(): PidStorage
     {
         if (!isset($this->pidStorage)) {
-            $this->pidStorage = new FileStorage($this, __DIR__ . '/../.mrden');
+            $this->pidStorage = new FilePidStorage($this, __DIR__ . '/../.mrden');
         }
         return $this->pidStorage;
     }

@@ -2,6 +2,7 @@
 
 namespace Mrden\Forker\Contracts;
 
+use Mrden\Forker\Exceptions\ForkException;
 use Mrden\Forker\Forker;
 use Mrden\Forker\Process\ExecCmdProcess;
 
@@ -10,29 +11,29 @@ abstract class Process implements Forkable, Cloneable, Unique
     /**
      * @psalm-var positive-int
      */
-    protected $maxCloneCount = 5;
+    protected int $maxCloneCount = 5;
 
     /**
      * @var array
      */
-    protected $params;
+    protected array $params;
     /**
      * Number running clone
      * @psalm-var positive-int
      */
-    private $runningCloneNumber = 1;
+    private int $runningCloneNumber = 1;
     /**
      * @var callable[]
      */
-    private $afterStopHandlers = [];
+    private array $afterStopHandlers = [];
 
-    protected $needRestart = false;
+    protected bool $needRestart = false;
 
-    protected $excludeParamsKey = [];
+    protected array $excludeParamsKey = [];
     /**
      * @var null|string
      */
-    protected $nameProcess;
+    protected string|null $nameProcess = null;
 
     /**
      * @throws \Exception
@@ -43,17 +44,26 @@ abstract class Process implements Forkable, Cloneable, Unique
         $this->checkParams();
     }
 
+    /**
+     * @psalm-param positive-int $cloneNumber
+     * @throws ForkException
+     */
     public function run(int $cloneNumber = 1): void
     {
         $this->runningCloneNumber = $cloneNumber;
-        \cli_set_process_title(\sprintf('%s (%d)', $this->title() ?: $this->defaultTitle(), $cloneNumber));
+        \cli_set_process_title(\sprintf('%s (%d)', $this->title() ?? $this->defaultTitle(), $cloneNumber));
 
         \pcntl_signal(\SIGTERM, [$this, 'signalHandler']);
         \pcntl_signal(\SIGUSR1, [$this, 'signalHandler']);
         \pcntl_signal(\SIGUSR2, [$this, 'signalHandler']);
         \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
 
-        $this->pidStorage()->save($cloneNumber, \getmypid());
+        $pid = \getmypid();
+        if ($pid === false) {
+            throw new ForkException('Error get process pid');
+        }
+
+        $this->pidStorage()->save($cloneNumber, $pid);
         $this->prepare();
         $this->execute();
 
@@ -64,9 +74,8 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     /**
      * @psalm-param positive-int|null $cloneNumber
-     * @psalm-return positive-int
      */
-    public function pid(int $cloneNumber = null): int
+    public function pid(int $cloneNumber = null): ?int
     {
         $cloneNumber = $cloneNumber ?? $this->getRunningCloneNumber();
         return $this->pidStorage()->get($cloneNumber);
@@ -80,9 +89,9 @@ abstract class Process implements Forkable, Cloneable, Unique
         return $this->maxCloneCount;
     }
 
-    public function uuid(): string
+    public function id(): string
     {
-        return \get_class($this) . \serialize($this->getParamsWithoutExclude());
+        return \md5(\get_class($this) . \serialize($this->getParamsWithoutExclude()));
     }
 
     /**
@@ -218,5 +227,5 @@ abstract class Process implements Forkable, Cloneable, Unique
     /**
      * Storage for process pid
      */
-    abstract protected function pidStorage(): Storage;
+    abstract protected function pidStorage(): PidStorage;
 }

@@ -9,18 +9,17 @@
   ],
   "license": "MIT",
   "require": {
-    "php": "^7.3 || ^8.0",
+    "php": "^8.2",
     "ext-intl": "*",
     "ext-json": "*",
     "ext-mbstring": "*",
     "ext-pcntl": "*",
-    "ext-posix": "*",
-    "ramsey/uuid": "3.*"
+    "ext-posix": "*"
   },
   "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3",
     "phpunit/phpunit": "^9",
-    "vimeo/psalm": "^4.30",
-    "friendsofphp/php-cs-fixer": "3.4.0"
+    "vimeo/psalm": "^5"
   },
   "authors": [
     {
@@ -43,5 +42,14 @@
   ],
   "config": {
     "sort-packages": true
+  },
+  "scripts": {
+    "bump-dev": [
+      "@composer bump --dev-only",
+      "@composer bin all bump --dev-only"
+    ],
+    "fixcs": "php-cs-fixer fix --diff",
+    "psalm": "psalm --show-info=true --no-diff --no-cache --error-level=INFO_LEVEL",
+    "test": "phpunit"
   }
 }

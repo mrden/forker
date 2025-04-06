@@ -2,19 +2,16 @@
 
 namespace Mrden\Forker\Storage;
 
-use Mrden\Forker\Contracts\Storage;
+use Mrden\Forker\Contracts\PidStorage;
 use Mrden\Forker\Contracts\Unique;
 
-final class FileStorage extends Storage
+final class FilePidStorage extends PidStorage
 {
-    /**
-     * @var string
-     */
-    private $dirname;
+    private string $dirname;
 
     public function __construct(Unique $unique, ?string $dirname = null)
     {
-        if ($dirname && !\file_exists($dirname)) {
+        if ($dirname !== null && !\file_exists($dirname)) {
             \mkdir($dirname, 0755, true);
         }
         $dirname = $dirname ?? \sys_get_temp_dir();
@@ -22,10 +19,14 @@ final class FileStorage extends Storage
         parent::__construct($unique);
     }
 
-    public function get(int $key): int
+    public function get(int $key): ?int
     {
         $file = $this->fileName($key);
-        return (int)@\file_get_contents($file);
+        $pidFromFile = (int) @\file_get_contents($file);
+        if ($pidFromFile > 0) {
+            return $pidFromFile;
+        }
+        return null;
     }
 
     public function remove(int $key): void
@@ -39,12 +40,12 @@ final class FileStorage extends Storage
     public function save(int $key, int $value): void
     {
         $fileName = $this->fileName($key);
-        \file_put_contents($fileName, $value);
+        \file_put_contents($fileName, (string) $value);
     }
 
     private function fileName(int $key): string
     {
-        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->uid) . '/';
+        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->unique->id()) . '/';
         if (!\file_exists($dir)) {
             \mkdir($dir, 0775, true);
         }
@@ -53,7 +54,8 @@ final class FileStorage extends Storage
 
     private function slugify(string $string): string
     {
-        \Transliterator::create('Russian-Latin/BGN')->transliterate($string);
+        $transliterator = \Transliterator::create('Russian-Latin/BGN');
+        $string = (string) ($transliterator ? $transliterator->transliterate($string) : $string);
         $string = \preg_replace('/[^a-zA-Z0-9=\s—–\-]+/u', '', $string);
         $string = \preg_replace('/[=\s—–\-]+/u', '-', $string);
         $string = \trim($string, '-');
