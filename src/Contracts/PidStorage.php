@@ -2,27 +2,20 @@
 
 namespace Mrden\Forker\Contracts;
 
-abstract class PidStorage
+interface PidStorage
 {
-    protected Unique $unique;
-
-    public function __construct(Unique $unique)
-    {
-        $this->unique = $unique;
-    }
+    /**
+     * @psalm-param positive-int $index
+     */
+    public function get(int $index): ?int;
 
     /**
-     * @psalm-param positive-int $key
+     * @psalm-param positive-int $index
      */
-    abstract public function get(int $key): ?int;
+    public function remove(int $index): void;
 
     /**
-     * @psalm-param positive-int $key
+     * @psalm-param positive-int $index
      */
-    abstract public function remove(int $key): void;
-
-    /**
-     * @psalm-param positive-int $key
-     */
-    abstract public function save(int $key, int $value): void;
+    public function save(int $index, int $pid): void;
 }

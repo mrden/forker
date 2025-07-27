@@ -9,7 +9,7 @@ trait FilePidStorageTrait
 {
     protected FilePidStorage|null $pidStorage = null;
 
-    protected function pidStorage(): PidStorage
+    protected function getPidStorage(): PidStorage
     {
         if (!isset($this->pidStorage)) {
             $this->pidStorage = new FilePidStorage($this);

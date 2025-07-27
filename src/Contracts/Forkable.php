@@ -10,7 +10,7 @@ interface Forkable
     public function run(int $cloneNumber = 1): void;
 
     /**
-     * @psalm-param positive-int|null $cloneNumber
+     * @psalm-param positive-int $cloneNumber
      */
-    public function pid(int $cloneNumber = null): ?int;
+    public function pid(int $cloneNumber = 0): ?int;
 }

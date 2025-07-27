@@ -3,10 +3,9 @@
 namespace Mrden\Forker\Contracts;
 
 use Mrden\Forker\Exceptions\ForkException;
-use Mrden\Forker\Forker;
-use Mrden\Forker\Process\ExecCmdProcess;
+use Mrden\Forker\ProcessManager\PosixProcessManager;
 
-abstract class Process implements Forkable, Cloneable, Unique
+abstract class Process implements Forkable, Cloneable, Unique, PidAware
 {
     /**
      * @psalm-var positive-int
@@ -27,21 +26,27 @@ abstract class Process implements Forkable, Cloneable, Unique
      */
     private array $afterStopHandlers = [];
 
-    protected bool $needRestart = false;
-
     protected array $excludeParamsKey = [];
     /**
      * @var null|string
      */
     protected string|null $nameProcess = null;
 
+    protected ProcessManagerInterface $processManager;
+
     /**
      * @throws \Exception
      */
-    public function __construct(array $params = [])
+    public function __construct(array $params = [], ?ProcessManagerInterface $processManager = null)
     {
         $this->params = $params;
+        $this->processManager = $processManager ?? new PosixProcessManager();
         $this->checkParams();
+    }
+
+    public function notifyPid(int $cloneNumber, int $pid): void
+    {
+        $this->getPidStorage()->save($cloneNumber, $pid);
     }
 
     /**
@@ -57,32 +62,41 @@ abstract class Process implements Forkable, Cloneable, Unique
         }
         \cli_set_process_title(\sprintf('%s (%d)', $title, $cloneNumber));
 
-        \pcntl_signal(\SIGTERM, [$this, 'signalHandler']);
-        \pcntl_signal(\SIGUSR1, [$this, 'signalHandler']);
-        \pcntl_signal(\SIGUSR2, [$this, 'signalHandler']);
+        $this->processManager->setSignalHandler(\SIGTERM, [$this, 'signalHandler']);
+        $this->processManager->setSignalHandler(\SIGUSR1, [$this, 'signalHandler']);
+
         \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
 
-        $pid = \getmypid();
+        $pid = $this->processManager->getCurrentPid();
         if ($pid === false) {
             throw new ForkException('Error get process pid');
         }
 
-        $this->pidStorage()->save($cloneNumber, $pid);
+        $this->getPidStorage()->save($cloneNumber, $pid);
         $this->prepare();
-        $this->execute();
+        $this->executeWithSignalHandling();
 
         foreach ($this->afterStopHandlers as $afterStopHandler) {
             $afterStopHandler();
         }
     }
 
-    /**
-     * @psalm-param positive-int|null $cloneNumber
-     */
-    public function pid(int $cloneNumber = null): ?int
+    private function executeWithSignalHandling(): void
     {
-        $cloneNumber = $cloneNumber ?? $this->getRunningCloneNumber();
-        return $this->pidStorage()->get($cloneNumber);
+        try {
+            $this->execute();
+        } finally {
+            $this->processManager->dispatchSignals();
+        }
+    }
+
+    /**
+     * @psalm-param positive-int $cloneNumber
+     */
+    public function pid(int $cloneNumber = 0): ?int
+    {
+        $cloneNumber = $cloneNumber ?: $this->getRunningCloneNumber();
+        return $this->getPidStorage()->get($cloneNumber);
     }
 
     /**
@@ -99,21 +113,18 @@ abstract class Process implements Forkable, Cloneable, Unique
     }
 
     /**
+     * ✅ УПРОЩЕНО: Убрана логика перезапуска
      * @psalm-param positive-int $number
      * @throws \Exception
      */
     public function shutdownHandler(int $number): void
     {
-        $this->pidStorage()->remove($number);
-        if ($this->needRestart) {
-            $restartProcess = new ExecCmdProcess([
-                'cmd' => $this->getCommand($number),
-            ]);
-            $forker = new Forker($restartProcess);
-            $forker->run();
-        }
+        $this->getPidStorage()->remove($number);
     }
 
+    /**
+     * ✅ УПРОЩЕНО: Убрана обработка SIGUSR2
+     */
     public function signalHandler(int $signo): void
     {
         switch ($signo) {
@@ -123,27 +134,8 @@ abstract class Process implements Forkable, Cloneable, Unique
             case \SIGUSR1:
                 $this->stop();
                 break;
-            case \SIGUSR2:
-                $this->restart();
-                break;
+                // ❌ УДАЛЕН: case SIGUSR2
         }
-    }
-
-    protected function getCommand(int $number): string
-    {
-        $forkerBinary = __DIR__ . '/../../bin/forker';
-        $command = \sprintf(
-            '%s %s --process="%s" --count=%d --clone_number=%d',
-            PHP_BINARY,
-            $forkerBinary,
-            static::class,
-            $number,
-            $number
-        );
-        foreach ($this->params as $name => $value) {
-            $command .= ' --process-' . $name . '="' . $value .'"';
-        }
-        return $command;
     }
 
     protected function terminate(): void
@@ -158,12 +150,6 @@ abstract class Process implements Forkable, Cloneable, Unique
         }
     }
 
-    protected function restart(): void
-    {
-        $this->needRestart = true;
-        $this->stop();
-    }
-
     /**
      * @psalm-return positive-int
      */
@@ -174,7 +160,17 @@ abstract class Process implements Forkable, Cloneable, Unique
 
     private function getDefaultTitle(): string
     {
-        return ($this->nameProcess ?? \get_class($this)) . $this->paramsToString();
+        $className = $this->nameProcess ?? \get_class($this);
+        $paramsString = $this->paramsToString();
+        $title = $className . $paramsString;
+
+        // Проверяем, что заголовок не пустой после обрезки пробелов
+        $trimmedTitle = trim($title);
+        if (empty($trimmedTitle)) {
+            return 'ForkerProcess';
+        }
+
+        return $title;
     }
 
     protected function getParamsWithoutExclude(): array
@@ -226,5 +222,5 @@ abstract class Process implements Forkable, Cloneable, Unique
     /**
      * Storage for process pid
      */
-    abstract protected function pidStorage(): PidStorage;
+    abstract protected function getPidStorage(): PidStorage;
 }

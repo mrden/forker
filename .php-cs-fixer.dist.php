@@ -20,7 +20,7 @@ $config = (new Config())
             ]),
     )
     ->setParallelConfig(ParallelConfigFactory::detect())
-    ->setCacheFile(__DIR__ . '/var/' . basename(__FILE__) . '.cache')
+    ->setCacheFile(__DIR__ . '/' . basename(__FILE__) . '.cache')
     ->setRules([
         '@PSR12' => true,
     ]);

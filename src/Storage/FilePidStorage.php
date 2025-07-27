@@ -5,8 +5,9 @@ namespace Mrden\Forker\Storage;
 use Mrden\Forker\Contracts\PidStorage;
 use Mrden\Forker\Contracts\Unique;
 
-final class FilePidStorage extends PidStorage
+final class FilePidStorage implements PidStorage
 {
+    private Unique $unique;
     private string $dirname;
 
     public function __construct(Unique $unique, ?string $dirname = null)
@@ -16,12 +17,12 @@ final class FilePidStorage extends PidStorage
         }
         $dirname = $dirname ?? \sys_get_temp_dir();
         $this->dirname = $dirname;
-        parent::__construct($unique);
+        $this->unique = $unique;
     }
 
-    public function get(int $key): ?int
+    public function get(int $index): ?int
     {
-        $file = $this->fileName($key);
+        $file = $this->fileName($index);
         $pidFromFile = (int) @\file_get_contents($file);
         if ($pidFromFile > 0) {
             return $pidFromFile;
@@ -29,18 +30,18 @@ final class FilePidStorage extends PidStorage
         return null;
     }
 
-    public function remove(int $key): void
+    public function remove(int $index): void
     {
-        $file = $this->fileName($key);
+        $file = $this->fileName($index);
         if (\file_exists($file)) {
             \unlink($file);
         }
     }
 
-    public function save(int $key, int $value): void
+    public function save(int $index, int $pid): void
     {
-        $fileName = $this->fileName($key);
-        \file_put_contents($fileName, (string) $value);
+        $fileName = $this->fileName($index);
+        \file_put_contents($fileName, (string) $pid);
     }
 
     private function fileName(int $key): string

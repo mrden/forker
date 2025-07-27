@@ -2,6 +2,7 @@
 
 namespace Mrden\Forker\Contracts;
 
-interface Titled {
+interface Titled
+{
     public function getTitle(): string;
 }

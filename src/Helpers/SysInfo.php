@@ -40,9 +40,4 @@ class SysInfo
         }
         return null;
     }
-
-    public static function isCli(): bool
-    {
-        return \php_sapi_name() === 'cli';
-    }
 }
