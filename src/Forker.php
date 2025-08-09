@@ -9,6 +9,7 @@ use Mrden\Forker\Contracts\Preparable;
 use Mrden\Forker\Contracts\ProcessManagerInterface;
 use Mrden\Forker\Contracts\SpecificCountCloneable;
 use Mrden\Forker\Exceptions\ForkException;
+use Mrden\Forker\Exceptions\ProcessTimeoutException;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
 
 final class Forker
@@ -29,6 +30,26 @@ final class Forker
         }
 
         $this->process = $process;
+        $this->setupSignalHandlers();
+    }
+
+    private function setupSignalHandlers(): void
+    {
+        $this->processManager->setSignalHandler(\SIGCHLD, [$this, 'childSignalHandler']);
+    }
+
+    public function childSignalHandler(int $signo): void
+    {
+        $this->cleanupZombieProcesses();
+    }
+
+    private function cleanupZombieProcesses(): void
+    {
+        while (($pid = \pcntl_waitpid(-1, $status, \WNOHANG)) > 0) {
+            // Зомби-процесс с PID $pid очищен
+            // Здесь можно добавить дополнительную логику если нужно
+            // todo: logging if logger exists
+        }
     }
 
     /**
@@ -53,7 +74,6 @@ final class Forker
     {
         $processedPids = [];
         $cloneCount = $this->cloneCount($cloneCount);
-        $this->processManager->setSignalHandler(\SIGCHLD, \SIG_IGN);
 
         if ($number === null) {
             for ($number = 1; $number <= $cloneCount; $number++) {
@@ -67,7 +87,6 @@ final class Forker
             if ($number > $cloneCount) {
                 return $processedPids;
             }
-            $this->processManager->dispatchSignals();
             $processedPids[] = $this->runCloneItem($number);
         }
 
@@ -79,7 +98,7 @@ final class Forker
      * @return list<int>
      * @throws ForkException
      */
-    public function stop(int $count, int $number = null): array
+    public function stop(int $count, int $number = null, int $stopTimeout = 10, bool $withForcedKill = false): array
     {
         $processedPids = [];
         $count = $this->cloneCount($count);
@@ -88,7 +107,7 @@ final class Forker
             for ($i = 1; $i <= $count; $i++) {
                 $processedPids = \array_values(\array_unique(\array_merge(
                     $processedPids,
-                    $this->stop($count, $i)
+                    $this->stop($count, $i, $stopTimeout, $withForcedKill)
                 )));
             }
         } else {
@@ -97,8 +116,18 @@ final class Forker
             }
             $currentPid = $this->process->pid($number);
             if ($currentPid > 0) {
-                $this->processManager->sendSignal($currentPid, \SIGUSR1);
-                $processedPids[] = $currentPid;
+                $this->processManager->requestGracefulShutdown($currentPid);
+                if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
+                    $processedPids[] = $currentPid;
+                } elseif ($withForcedKill) {
+                    $this->processManager->forceKillProcess($currentPid);
+
+                    if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
+                        $processedPids[] = $currentPid;
+                    } else {
+                        throw new ProcessTimeoutException($currentPid, 2 * $stopTimeout);
+                    }
+                }
             }
         }
         return $processedPids;
@@ -108,13 +137,13 @@ final class Forker
      * @return list<int>
      * @throws ForkException
      */
-    public function stopAll(): array
+    public function stopAll(int $stopTimeout = 10, bool $withForcedKill = false): array
     {
         $maxCount = $this->process instanceof Cloneable
             ? $this->process->maxCloneCount()
             : 1;
 
-        return $this->stop($maxCount);
+        return $this->stop($maxCount, null, $stopTimeout, $withForcedKill);
     }
 
 
@@ -124,16 +153,17 @@ final class Forker
      * @return list<int>
      * @throws ForkException
      */
-    public function restart(int $count, int $number = null, int $stopTimeout = 10): array
+    public function restart(int $count, int $number = null, int $stopTimeout = 10, bool $withForcedKill = false): array
     {
         $processedPids = [];
         $count = $this->cloneCount($count);
 
         if ($number === null) {
             for ($i = 1; $i <= $count; $i++) {
-                $processedPids = array_values(array_unique(array_merge(
+                $this->processManager->dispatchSignals();
+                $processedPids = \array_values(\array_unique(\array_merge(
                     $processedPids,
-                    $this->restart($count, $i, $stopTimeout)
+                    $this->restart($count, $i, $stopTimeout, $withForcedKill)
                 )));
             }
         } else {
@@ -142,16 +172,26 @@ final class Forker
             }
 
             $currentPid = $this->process->pid($number);
-            if ($currentPid > 0 && $this->processManager->isProcessRunning($currentPid)) {
-                // Останавливаем старый процесс с SIGUSR1
-                $this->processManager->sendSignal($currentPid, \SIGUSR1);
+            $this->processManager->dispatchSignals();
+            if ($currentPid !== null && $this->processManager->isProcessRunning($currentPid)) {
+                $this->processManager->requestGracefulShutdown($currentPid);
 
-                // Ожидаем остановки
-                $this->processManager->waitForProcessStop($currentPid, $stopTimeout);
+                if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
+                    $processedPids[] = $this->runCloneItem($number);
+                } elseif ($withForcedKill) {
+                    $this->processManager->forceKillProcess($currentPid);
+
+                    if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
+                        $processedPids[] = $this->runCloneItem($number);
+                    } else {
+                        throw new ProcessTimeoutException($currentPid, 2 * $stopTimeout);
+                    }
+                } else {
+                    throw new ProcessTimeoutException($currentPid, $stopTimeout);
+                }
+            } else {
+                $processedPids[] = $this->runCloneItem($number);
             }
-
-            // Запускаем новый процесс
-            $processedPids[] = $this->runCloneItem($number);
         }
 
         return $processedPids;
@@ -189,6 +229,7 @@ final class Forker
      */
     private function runCloneItem(int $number): int
     {
+        $this->processManager->dispatchSignals();
         $runningPid = $this->getRunningPid($number);
         if ($runningPid !== null) {
             return $runningPid;
@@ -198,19 +239,18 @@ final class Forker
         switch ($pid) {
             case -1:
                 // Fork error
-                throw new ForkException(sprintf(
+                throw new ForkException(\sprintf(
                     'Process %s not forked',
                     \get_class($this->process)
                 ));
             case 0:
                 // Child process logic
-                $this->processManager->setSignalHandler(\SIGUSR1, static function ($signo) {
-                    // Graceful shutdown
+                $this->processManager->setSignalHandler(\SIGTERM, static function ($signo) {
                     exit(0);
                 });
 
                 $this->process->run($number);
-                exit;
+                exit(0);
             default:
                 // Parent process logic
                 if ($this->process instanceof PidAware) {

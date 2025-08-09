@@ -49,6 +49,8 @@
       "@composer bin all bump --dev-only"
     ],
     "fixcs": "php-cs-fixer fix --diff",
+    "fixcs:changed": "php-cs-fixer fix --diff --config=.php-cs-fixer.dist.php $(git diff --name-only --diff-filter=ACM HEAD | grep '\\.php$' | paste -sd ' ' -)",
+    "fixcs:staged": "php-cs-fixer fix --diff --config=.php-cs-fixer.dist.php $(git diff --cached --name-only --diff-filter=ACM | grep '\\.php$' | paste -sd ' ' -)",
     "psalm": "psalm --show-info=true --no-diff --no-cache --error-level=INFO_LEVEL",
     "test": "phpunit",
     "test:unit": "phpunit",

@@ -2,18 +2,19 @@
 
 namespace Tests;
 
+use Mrden\Forker\Contracts\Process;
 use Mrden\Forker\Forker;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Tests\Integration\TestProcess;
 
-/**
- * Интеграционные тесты с реальным форком процессов
- *
- * @group integration
- */
+#[Group("integration")]
 class ForkerIntegrationTest extends TestCase
 {
+    /**
+     * @var list<Process>
+     */
     private array $createdProcesses = [];
 
     protected function setUp(): void
@@ -25,11 +26,11 @@ class ForkerIntegrationTest extends TestCase
             $this->markTestSkipped('Integration tests can only run in CLI mode');
         }
 
-        if (!extension_loaded('pcntl')) {
+        if (!\extension_loaded('pcntl')) {
             $this->markTestSkipped('PCNTL extension is required for integration tests');
         }
 
-        if (!extension_loaded('posix')) {
+        if (!\extension_loaded('posix')) {
             $this->markTestSkipped('POSIX extension is required for integration tests');
         }
     }
@@ -39,7 +40,7 @@ class ForkerIntegrationTest extends TestCase
         // Очищаем созданные процессы
         foreach ($this->createdProcesses as $process) {
             if ($process instanceof TestProcess) {
-                $process->cleanup();
+                $process->cleanupLogFile();
             }
         }
         $this->createdProcesses = [];
@@ -68,7 +69,7 @@ class ForkerIntegrationTest extends TestCase
         $this->assertTrue($processManager->isProcessRunning($pid), 'Process should be running');
 
         // Ждем немного, чтобы процесс успел записать в лог
-        sleep(2);
+        \sleep(2);
 
         // Проверяем лог-файл
         $logContents = $process->getLogContents();
@@ -80,7 +81,7 @@ class ForkerIntegrationTest extends TestCase
         $this->assertEquals($pids, $stoppedPids);
 
         // Проверяем, что процесс завершился
-        $this->assertTrue($processManager->waitForProcessStop($pid, 15), 'Process should be stopped');
+        $this->assertTrue($processManager->waitForProcessStop($pid, 5), 'Process should be stopped');
 
         // Проверяем лог завершения
         $finalLog = $process->getLogContents();
@@ -112,7 +113,7 @@ class ForkerIntegrationTest extends TestCase
         }
 
         // Проверяем, что все PID разные
-        $this->assertCount(3, array_unique($pids));
+        $this->assertCount(3, \array_unique($pids));
 
         $stoppedPids = $forker->stopAll();
         $this->assertCount(3, $stoppedPids);
@@ -195,8 +196,8 @@ class ForkerIntegrationTest extends TestCase
         $pids = $forker->run();
         $pid = $pids[0];
 
-        // Отправляем SIGUSR1 напрямую
-        $this->assertTrue($processManager->sendSignal($pid, SIGUSR1));
+        // Просим процесс завершиться
+        $this->assertTrue($processManager->requestGracefulShutdown($pid));
         // Процесс должен завершиться
         $this->assertTrue($processManager->waitForProcessStop($pid, 5), 'Process should respond to SIGUSR1');
 
@@ -217,11 +218,11 @@ class ForkerIntegrationTest extends TestCase
         $pid = $pids[0];
 
         // Засекаем время перезапуска
-        $startTime = microtime(true);
+        $startTime = \microtime(true);
 
         $newPids = $forker->restart(1, null, 5); // 5 секунд таймаут
 
-        $endTime = microtime(true);
+        $endTime = \microtime(true);
         $restartTime = $endTime - $startTime;
 
         // Перезапуск должен занять разумное время (не больше 7 секунд с запасом)

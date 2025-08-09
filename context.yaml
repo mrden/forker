@@ -5,16 +5,89 @@ import:
 
 documents:
   -
-    description: 'Project structure overview'
-    outputPath: project-structure.md
+    description: 'Src contracts and base Forker class structure overview'
+    outputPath: src-contracts-structure.md
     overwrite: true
     sources:
       -
         type: file
         sourcePaths:
-          - src
+          - src/Contracts
+          - src/Forker.php
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
+
+  - description: 'Src exceptions structure overview'
+    outputPath: src-exceptions-structure.md
+    overwrite: true
+    sources:
+      - type: file
+        sourcePaths:
+          - src/Exceptions
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
+
+  - description: 'Src helpers structure overview'
+    outputPath: src-helpers-structure.md
+    overwrite: true
+    sources:
+      - type: file
+        sourcePaths:
+          - src/Helpers
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
+
+  - description: 'Src process implements structure overview'
+    outputPath: src-process-implements-structure.md
+    overwrite: true
+    sources:
+      - type: file
+        sourcePaths:
+          - src/Process
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
+
+  - description: 'Src process manager implements structure overview'
+    outputPath: src-process-manager-implements-structure.md
+    overwrite: true
+    sources:
+      - type: file
+        sourcePaths:
+          - src/ProcessManager
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
+
+
+  - description: 'Src storge implements structure overview'
+    outputPath: src-storge-implements-structure.md
+    overwrite: true
+    sources:
+      - type: file
+        sourcePaths:
+          - src/Storage
+          - src/Traits
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
+
+  - description: 'Test structure overview'
+    outputPath: test-structure.md
+    overwrite: true
+    sources:
+      - type: file
+        sourcePaths:
           - tests
-          - bin
         renderFormat: ascii
         enabled: true
         showCharCount: true

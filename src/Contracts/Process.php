@@ -41,8 +41,15 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
     {
         $this->params = $params;
         $this->processManager = $processManager ?? new PosixProcessManager();
-        $this->checkParams();
+        $this->configure($params);
     }
+
+    /**
+     * Конфигурация процесса: валидация + инициализация
+     * @param array $params Параметры конфигурации
+     * @throws \InvalidArgumentException
+     */
+    abstract protected function configure(array $params): void;
 
     public function notifyPid(int $cloneNumber, int $pid): void
     {
@@ -63,7 +70,6 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
         \cli_set_process_title(\sprintf('%s (%d)', $title, $cloneNumber));
 
         $this->processManager->setSignalHandler(\SIGTERM, [$this, 'signalHandler']);
-        $this->processManager->setSignalHandler(\SIGUSR1, [$this, 'signalHandler']);
 
         \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
 
@@ -75,6 +81,7 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
         $this->getPidStorage()->save($cloneNumber, $pid);
         $this->prepare();
         $this->executeWithSignalHandling();
+        $this->cleanup();
 
         foreach ($this->afterStopHandlers as $afterStopHandler) {
             $afterStopHandler();
@@ -113,7 +120,6 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
     }
 
     /**
-     * ✅ УПРОЩЕНО: Убрана логика перезапуска
      * @psalm-param positive-int $number
      * @throws \Exception
      */
@@ -122,28 +128,16 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
         $this->getPidStorage()->remove($number);
     }
 
-    /**
-     * ✅ УПРОЩЕНО: Убрана обработка SIGUSR2
-     */
     public function signalHandler(int $signo): void
     {
         switch ($signo) {
             case \SIGTERM:
-                $this->terminate();
+                $this->stopHandler();
                 break;
-            case \SIGUSR1:
-                $this->stop();
-                break;
-                // ❌ УДАЛЕН: case SIGUSR2
         }
     }
 
-    protected function terminate(): void
-    {
-        $this->stop();
-    }
-
-    protected function stop(?callable $afterStop = null): void
+    protected function stopHandler(?callable $afterStop = null): void
     {
         if ($afterStop !== null) {
             $this->afterStopHandlers[] = $afterStop;
@@ -165,7 +159,7 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
         $title = $className . $paramsString;
 
         // Проверяем, что заголовок не пустой после обрезки пробелов
-        $trimmedTitle = trim($title);
+        $trimmedTitle = \trim($title);
         if (empty($trimmedTitle)) {
             return 'ForkerProcess';
         }
@@ -196,7 +190,7 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
             }
         }
 
-        return \preg_replace('|\s+|', ' ', '[' . trim(str_replace(
+        return \preg_replace('|\s+|', ' ', '[' . \trim(\str_replace(
             ['array (', ')'],
             '',
             \var_export($params, true)
@@ -204,15 +198,14 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
     }
 
     /**
-     * Checking process input parameters
-     * @throws \Exception
-     */
-    abstract protected function checkParams(): void;
-
-    /**
      * Prepare to execute (for example, db connection to use in new thread)
      */
     abstract protected function prepare(): void;
+
+    /**
+     * Cleanup resources after process execution (for example, temporary files, connections)
+     */
+    abstract protected function cleanup(): void;
 
     /**
      * Base logic of the process

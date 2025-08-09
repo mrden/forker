@@ -2,9 +2,10 @@
 
 namespace Tests\Mock;
 
+use Mrden\Forker\Contracts\PosixProcessManagerInterface;
 use Mrden\Forker\Contracts\ProcessManagerInterface;
 
-class MockProcessManager implements ProcessManagerInterface
+class MockProcessManager implements PosixProcessManagerInterface
 {
     /**
      * @var array<int, bool> Карта запущенных процессов (PID => isRunning)
@@ -44,11 +45,11 @@ class MockProcessManager implements ProcessManagerInterface
         }
 
         // Определяем константы сигналов
-        $SIGUSR1 = \defined('SIGUSR1') ? SIGUSR1 : 10;
         $SIGKILL = \defined('SIGKILL') ? SIGKILL : 9;
+        $SIGTERM = \defined('SIGTERM') ? SIGTERM : 15;
 
-        // Обрабатываем только SIGUSR1 и SIGKILL
-        if ($signal === $SIGUSR1 || $signal === $SIGKILL) {
+        // Обрабатываем только SIGKILL и SIGTERM
+        if ($signal === $SIGKILL || $signal === $SIGTERM) {
             $this->runningProcesses[$pid] = false;
         }
 
@@ -113,14 +114,24 @@ class MockProcessManager implements ProcessManagerInterface
         $this->isChildProcess = $isChild;
     }
 
+    public function requestGracefulShutdown(int $pid): bool
+    {
+        if (!$this->isProcessRunning($pid)) {
+            return true;
+        }
+
+        return $this->sendSignal($pid, \SIGTERM);
+    }
+
     /**
      * Принудительно останавливает процесс (для тестирования)
      */
-    public function forceStopProcess(int $pid): void
+    public function forceKillProcess(int $pid): bool
     {
         if (isset($this->runningProcesses[$pid])) {
             $this->runningProcesses[$pid] = false;
         }
+        return true;
     }
 
     /**

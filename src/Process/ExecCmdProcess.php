@@ -9,27 +9,30 @@ class ExecCmdProcess extends Process
 {
     use FilePidStorageTrait;
 
-    protected function checkParams(): void
+    private string $command;
+
+    protected function configure(array $params): void
     {
-        if (!isset($this->params['cmd'])) {
-            throw new \LogicException('Param "cmd" required');
+        if (!isset($params['cmd']) || !\is_string($params['cmd']) || empty(\trim($params['cmd']))) {
+            throw new \InvalidArgumentException('Parameter "cmd" is required and must be a non-empty string');
         }
+
+        $this->command = \trim($params['cmd']);
     }
 
     protected function prepare(): void
+    {
+        if (!\str_contains($this->command, '> /dev/null 2>&1 &')) {
+            $this->command .= ' > /dev/null 2>&1 &';
+        }
+    }
+
+    protected function cleanup(): void
     {
     }
 
     protected function execute(): void
     {
-        \sleep(1);
-        $command = $this->params['cmd'] ?? null;
-        if ($command === null) {
-            return;
-        }
-        if (!\str_contains($command, '> /dev/null 2>&1 &')) {
-            $command = $command . ' > /dev/null 2>&1 &';
-        }
-        \exec($command);
+        \exec($this->command);
     }
 }

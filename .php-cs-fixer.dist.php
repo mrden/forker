@@ -23,6 +23,12 @@ $config = (new Config())
     ->setCacheFile(__DIR__ . '/' . basename(__FILE__) . '.cache')
     ->setRules([
         '@PSR12' => true,
-    ]);
+        'native_function_invocation' => [
+            'include' => ['@all'], // Применить ко всем встроенным функциям
+            'scope' => 'namespaced', // Применять только в пространствах имён
+        ],
+    ])
+    ->setRiskyAllowed(true)
+;
 
 return $config;
