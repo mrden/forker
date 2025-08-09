@@ -1,0 +1,21 @@
+$schema: 'https://raw.githubusercontent.com/context-hub/generator/refs/heads/main/json-schema.json'
+import:
+  - type: url
+    url: https://gist.githubusercontent.com/butschster/1b7e597691cc1a6476b15dc120ecbddb/raw/8c0f9d0145dcd260b814f866ec130ec630c80ee8/prompts.yaml
+
+documents:
+  -
+    description: 'Project structure overview'
+    outputPath: project-structure.md
+    overwrite: true
+    sources:
+      -
+        type: file
+        sourcePaths:
+          - src
+          - tests
+          - bin
+        renderFormat: ascii
+        enabled: true
+        showCharCount: true
+        showSize: true
