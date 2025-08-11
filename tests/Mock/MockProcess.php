@@ -4,13 +4,12 @@ namespace Tests\Mock;
 
 use Mrden\Forker\Contracts\Cloneable;
 use Mrden\Forker\Contracts\Forkable;
-use Mrden\Forker\Contracts\PidAware;
 use Mrden\Forker\Contracts\Unique;
 
 /**
  * Мок-класс процесса для тестирования
  */
-class MockProcess implements Forkable, Cloneable, Unique, PidAware
+class MockProcess implements Forkable, Cloneable, Unique
 {
     /**
      * @var array<int, int>
@@ -120,5 +119,14 @@ class MockProcess implements Forkable, Cloneable, Unique, PidAware
     public function restart(): void
     {
         // Нет реализации для тестов
+    }
+
+    public function signalHandler(int $signo): void
+    {
+        // Нет реализации для тестов
+    }
+
+    public function addAfterStopCallback(callable $afterStop): void
+    {
     }
 }

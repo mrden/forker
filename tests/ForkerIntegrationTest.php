@@ -5,6 +5,7 @@ namespace Tests;
 use Mrden\Forker\Contracts\Process;
 use Mrden\Forker\Forker;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
+use Mrden\Forker\Storage\FilePidStorage;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Tests\Integration\TestProcess;
@@ -52,9 +53,10 @@ class ForkerIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 30]); // Долгий процесс
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         // Запускаем процесс
         $pids = $forker->run();
@@ -64,7 +66,7 @@ class ForkerIntegrationTest extends TestCase
         $this->assertGreaterThan(0, $pids[0]);
 
         // Проверяем, что процесс действительно запущен
-        $pid = $process->pid(1);
+        $pid = $pidStorage->get(1);
         $this->assertEquals($pids[0], $pid);
         $this->assertTrue($processManager->isProcessRunning($pid), 'Process should be running');
 
@@ -92,9 +94,10 @@ class ForkerIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 30]);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         // Запускаем 3 процесса
         $pids = $forker->run(3);
@@ -108,7 +111,7 @@ class ForkerIntegrationTest extends TestCase
             $this->assertTrue($processManager->isProcessRunning($pid), "Process {$pid} should be running");
 
             // Проверяем, что PID корректно сохранен
-            $storedPid = $process->pid($i + 1);
+            $storedPid = $pidStorage->get($i + 1);
             $this->assertEquals($pid, $storedPid);
         }
 
@@ -128,9 +131,10 @@ class ForkerIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 30]);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         // Запускаем процесс
         $originalPids = $forker->run();
@@ -149,7 +153,7 @@ class ForkerIntegrationTest extends TestCase
         $this->assertTrue($processManager->isProcessRunning($newPid), 'New process should be running');
 
         // Проверяем, что PID обновился в storage
-        $storedPid = $process->pid(1);
+        $storedPid = $pidStorage->get(1);
         $this->assertEquals($newPid, $storedPid);
 
         // Останавливаем новый процесс
@@ -161,9 +165,10 @@ class ForkerIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 2]); // Короткий процесс
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         $pids = $forker->run();
         $pid = $pids[0];
@@ -187,11 +192,12 @@ class ForkerIntegrationTest extends TestCase
 
     public function testSignalHandling(): void
     {
-        $process = new TestProcess(['run_duration' => 30]);
+        $process = new TestProcess(['run_duration' => 30, 'log_file' => __DIR__ . '/it.log']);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         $pids = $forker->run();
         $pid = $pids[0];
@@ -199,7 +205,7 @@ class ForkerIntegrationTest extends TestCase
         // Просим процесс завершиться
         $this->assertTrue($processManager->requestGracefulShutdown($pid));
         // Процесс должен завершиться
-        $this->assertTrue($processManager->waitForProcessStop($pid, 5), 'Process should respond to SIGUSR1');
+        $this->assertTrue($processManager->waitForProcessStop($pid, 5), 'Process should respond to SIGTERM');
 
         // Проверяем лог
         $logContents = $process->getLogContents();
@@ -210,9 +216,10 @@ class ForkerIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 30]);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         $pids = $forker->run();
         $pid = $pids[0];
@@ -241,9 +248,10 @@ class ForkerIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 5]);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         // Запускаем и сразу останавливаем несколько раз
         for ($i = 0; $i < 3; $i++) {

@@ -24,18 +24,11 @@ namespace Any;
 class SingleProcess extends \Mrden\Forker\Contracts\Process
 {
     use \Mrden\Forker\Traits\FilePidStorageTrait;
+    use \Mrden\Forker\Traits\SimpleProcessTrait;
 
     public function execute(): void
     {
         echo 'context from parent process ' . ($this->params['context'] ?? '');
-    }
-
-    protected function prepare(): void
-    {
-    }
-    
-    protected function checkParams(): void
-    {
     }
 }
 ```

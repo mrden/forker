@@ -3,7 +3,6 @@
 namespace Tests\Mock;
 
 use Mrden\Forker\Contracts\PosixProcessManagerInterface;
-use Mrden\Forker\Contracts\ProcessManagerInterface;
 
 class MockProcessManager implements PosixProcessManagerInterface
 {
@@ -27,6 +26,11 @@ class MockProcessManager implements PosixProcessManagerInterface
      */
     private bool $isChildProcess = false;
 
+    /**
+     * @var array<int, callable|int> Установленные обработчики сигналов
+     */
+    private array $signalHandlers = [];
+
     public function fork(): int
     {
         if ($this->isChildProcess) {
@@ -47,9 +51,9 @@ class MockProcessManager implements PosixProcessManagerInterface
         // Определяем константы сигналов
         $SIGKILL = \defined('SIGKILL') ? SIGKILL : 9;
         $SIGTERM = \defined('SIGTERM') ? SIGTERM : 15;
+        $SIGUSR1 = \defined('SIGUSR1') ? SIGUSR1 : 15;
 
-        // Обрабатываем только SIGKILL и SIGTERM
-        if ($signal === $SIGKILL || $signal === $SIGTERM) {
+        if ($signal === $SIGKILL || $signal === $SIGTERM || $signal === $SIGUSR1) {
             $this->runningProcesses[$pid] = false;
         }
 
@@ -58,7 +62,7 @@ class MockProcessManager implements PosixProcessManagerInterface
 
     public function setSignalHandler(int $signal, callable|int $handler): bool
     {
-        // Просто имитируем успешную установку обработчика
+        $this->signalHandlers[$signal] = $handler;
         return true;
     }
 
@@ -120,7 +124,7 @@ class MockProcessManager implements PosixProcessManagerInterface
             return true;
         }
 
-        return $this->sendSignal($pid, \SIGTERM);
+        return $this->sendSignal($pid, \SIGUSR1);
     }
 
     /**
@@ -134,6 +138,30 @@ class MockProcessManager implements PosixProcessManagerInterface
         return true;
     }
 
+    public function resetSignalHandlers(): void
+    {
+        $signalsToReset = [
+            \defined('SIGTERM') ? \SIGTERM : 15,
+            \defined('SIGINT') ? \SIGINT : 2,
+            \defined('SIGQUIT') ? \SIGQUIT : 3,
+            \defined('SIGUSR1') ? \SIGUSR1 : 10,
+            \defined('SIGUSR2') ? \SIGUSR2 : 12,
+            \defined('SIGHUP') ? \SIGHUP : 1
+        ];
+
+        foreach ($signalsToReset as $signal) {
+            $this->resetSignalHandler($signal);
+        }
+    }
+
+    public function resetSignalHandler(int $signal): bool
+    {
+        if (isset($this->signalHandlers[$signal])) {
+            unset($this->signalHandlers[$signal]);
+        }
+        return true;
+    }
+
     /**
      * Очищает список процессов
      */
@@ -141,5 +169,15 @@ class MockProcessManager implements PosixProcessManagerInterface
     {
         $this->runningProcesses = [];
         $this->pidCounter = 1000;
+        $this->signalHandlers = [];
+    }
+
+    public function terminateShutdownProcess(int $pid): bool
+    {
+        if (!$this->isProcessRunning($pid)) {
+            return true;
+        }
+
+        return $this->sendSignal($pid, \SIGTERM);
     }
 }

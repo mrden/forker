@@ -4,32 +4,33 @@ namespace Mrden\Forker;
 
 use Mrden\Forker\Contracts\Cloneable;
 use Mrden\Forker\Contracts\Forkable;
-use Mrden\Forker\Contracts\PidAware;
+use Mrden\Forker\Contracts\PidStorage;
 use Mrden\Forker\Contracts\Preparable;
 use Mrden\Forker\Contracts\ProcessManagerInterface;
 use Mrden\Forker\Contracts\SpecificCountCloneable;
+use Mrden\Forker\Contracts\Unique;
 use Mrden\Forker\Exceptions\ForkException;
 use Mrden\Forker\Exceptions\ProcessTimeoutException;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
+use Mrden\Forker\Storage\FilePidStorage;
 
 final class Forker
 {
-    private Forkable $process;
-
+    private Forkable|Unique $process;
+    private PidStorage $pidStorage;
     private ProcessManagerInterface $processManager;
 
     /**
      * @throws ForkException
      */
-    public function __construct(Forkable $process, ?ProcessManagerInterface $processManager = null)
+    public function __construct(Forkable|Unique $process, ?PidStorage $pidStorage = null, ?ProcessManagerInterface $processManager = null)
     {
         $this->processManager = $processManager ?? new PosixProcessManager();
-
         if (!$this->processManager->isCli()) {
             throw new ForkException('Forker is only used in cli mode.');
         }
-
         $this->process = $process;
+        $this->pidStorage = $pidStorage ?? new FilePidStorage($this->process);
         $this->setupSignalHandlers();
     }
 
@@ -114,18 +115,23 @@ final class Forker
             if ($number > $count) {
                 return $processedPids;
             }
-            $currentPid = $this->process->pid($number);
+            $currentPid = $this->pidStorage->get($number);
             if ($currentPid > 0) {
                 $this->processManager->requestGracefulShutdown($currentPid);
                 if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
                     $processedPids[] = $currentPid;
-                } elseif ($withForcedKill) {
-                    $this->processManager->forceKillProcess($currentPid);
-
+                } else {
+                    $this->processManager->terminateShutdownProcess($currentPid);
                     if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
                         $processedPids[] = $currentPid;
-                    } else {
-                        throw new ProcessTimeoutException($currentPid, 2 * $stopTimeout);
+                    } elseif ($withForcedKill) {
+                        $this->processManager->forceKillProcess($currentPid);
+
+                        if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
+                            $processedPids[] = $currentPid;
+                        } else {
+                            throw new ProcessTimeoutException($currentPid, 2 * $stopTimeout);
+                        }
                     }
                 }
             }
@@ -171,23 +177,27 @@ final class Forker
                 return $processedPids;
             }
 
-            $currentPid = $this->process->pid($number);
+            $currentPid = $this->pidStorage->get($number);
             $this->processManager->dispatchSignals();
             if ($currentPid !== null && $this->processManager->isProcessRunning($currentPid)) {
                 $this->processManager->requestGracefulShutdown($currentPid);
-
                 if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
                     $processedPids[] = $this->runCloneItem($number);
-                } elseif ($withForcedKill) {
-                    $this->processManager->forceKillProcess($currentPid);
-
+                } else {
+                    $this->processManager->terminateShutdownProcess($currentPid);
                     if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
                         $processedPids[] = $this->runCloneItem($number);
+                    } elseif ($withForcedKill) {
+                        $this->processManager->forceKillProcess($currentPid);
+
+                        if ($this->processManager->waitForProcessStop($currentPid, $stopTimeout)) {
+                            $processedPids[] = $this->runCloneItem($number);
+                        } else {
+                            throw new ProcessTimeoutException($currentPid, 2 * $stopTimeout);
+                        }
                     } else {
-                        throw new ProcessTimeoutException($currentPid, 2 * $stopTimeout);
+                        throw new ProcessTimeoutException($currentPid, $stopTimeout);
                     }
-                } else {
-                    throw new ProcessTimeoutException($currentPid, $stopTimeout);
                 }
             } else {
                 $processedPids[] = $this->runCloneItem($number);
@@ -245,17 +255,18 @@ final class Forker
                 ));
             case 0:
                 // Child process logic
-                $this->processManager->setSignalHandler(\SIGTERM, static function ($signo) {
-                    exit(0);
+                $this->process->addAfterStopCallback(function () use ($number) {
+                    $this->pidStorage->remove($number);
                 });
+                $this->processManager->resetSignalHandlers();
+                $this->processManager->setSignalHandler(\SIGTERM, [$this->process, 'signalHandler']);
+                $this->processManager->setSignalHandler(\SIGUSR1, [$this->process, 'signalHandler']);
 
                 $this->process->run($number);
                 exit(0);
             default:
                 // Parent process logic
-                if ($this->process instanceof PidAware) {
-                    $this->process->notifyPid($number, $pid);
-                }
+                $this->pidStorage->save($number, $pid);
 
                 return $pid;
         }
@@ -266,7 +277,7 @@ final class Forker
      */
     private function getRunningPid(int $number): ?int
     {
-        $runningPid = $this->process->pid($number);
+        $runningPid = $this->pidStorage->get($number);
         if ($runningPid !== null && $runningPid > 0) {
             return $this->processManager->isProcessRunning($runningPid) ? $runningPid : null;
         }

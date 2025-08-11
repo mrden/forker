@@ -15,4 +15,8 @@ trait SimpleProcessTrait
     protected function cleanup(): void
     {
     }
+
+    protected function initGracefulShutdown(): void
+    {
+    }
 }

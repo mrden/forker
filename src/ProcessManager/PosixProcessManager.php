@@ -23,6 +23,15 @@ class PosixProcessManager implements PosixProcessManagerInterface
             return true;
         }
 
+        return $this->sendSignal($pid, \SIGUSR1);
+    }
+
+    public function terminateShutdownProcess(int $pid): bool
+    {
+        if (!$this->isProcessRunning($pid)) {
+            return true;
+        }
+
         return $this->sendSignal($pid, \SIGTERM);
     }
 
@@ -88,5 +97,21 @@ class PosixProcessManager implements PosixProcessManagerInterface
     public function isCli(): bool
     {
         return PHP_SAPI === 'cli';
+    }
+
+    public function resetSignalHandlers(): void
+    {
+        $signalsToReset = [
+            \SIGTERM, \SIGINT, \SIGQUIT, \SIGUSR1, \SIGUSR2, \SIGHUP
+        ];
+
+        foreach ($signalsToReset as $signal) {
+            $this->resetSignalHandler($signal);
+        }
+    }
+
+    public function resetSignalHandler(int $signal): bool
+    {
+        return \pcntl_signal($signal, \SIG_DFL);
     }
 }

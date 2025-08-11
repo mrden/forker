@@ -64,8 +64,7 @@ class ParameterTestProcess extends Process
         }
     }
 
-    protected function getPidStorage(): PidStorage
+    protected function initGracefulShutdown(): void
     {
-        return new FilePidStorage($this, \sys_get_temp_dir() . "/forker_param_test_pids");
     }
 }

@@ -2,10 +2,11 @@
 
 namespace Mrden\Forker\Contracts;
 
+use JetBrains\PhpStorm\NoReturn;
 use Mrden\Forker\Exceptions\ForkException;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
 
-abstract class Process implements Forkable, Cloneable, Unique, PidAware
+abstract class Process implements Forkable, Cloneable, Unique
 {
     /**
      * @psalm-var positive-int
@@ -24,9 +25,11 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
     /**
      * @var callable[]
      */
-    private array $afterStopHandlers = [];
+    private array $afterStopCallbacks = [];
 
     protected array $excludeParamsKey = [];
+
+    private bool $callbacksExecuted = false;
     /**
      * @var null|string
      */
@@ -45,48 +48,54 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
     }
 
     /**
-     * Конфигурация процесса: валидация + инициализация
-     * @param array $params Параметры конфигурации
-     * @throws \InvalidArgumentException
-     */
-    abstract protected function configure(array $params): void;
-
-    public function notifyPid(int $cloneNumber, int $pid): void
-    {
-        $this->getPidStorage()->save($cloneNumber, $pid);
-    }
-
-    /**
      * @psalm-param positive-int $cloneNumber
      * @throws ForkException
      */
     public function run(int $cloneNumber = 1): void
     {
         $this->runningCloneNumber = $cloneNumber;
+
         $title = $this->getDefaultTitle();
         if ($this instanceof Titled) {
             $title = $this->getTitle();
         }
-        \cli_set_process_title(\sprintf('%s (%d)', $title, $cloneNumber));
+        if ($title) {
+            \cli_set_process_title(\sprintf('%s (%d)', $title, $cloneNumber));
+        }
 
-        $this->processManager->setSignalHandler(\SIGTERM, [$this, 'signalHandler']);
-
-        \register_shutdown_function([$this, 'shutdownHandler'], $cloneNumber);
+        \register_shutdown_function([$this, 'shutdownHandler']);
 
         $pid = $this->processManager->getCurrentPid();
         if ($pid === false) {
             throw new ForkException('Error get process pid');
         }
 
-        $this->getPidStorage()->save($cloneNumber, $pid);
-        $this->prepare();
-        $this->executeWithSignalHandling();
-        $this->cleanup();
-
-        foreach ($this->afterStopHandlers as $afterStopHandler) {
-            $afterStopHandler();
+        try {
+            $this->prepare();
+            $this->executeWithSignalHandling();
+        } finally {
+            $this->executeAfterStopCallbacks();
+            $this->cleanup();
         }
     }
+
+    private function executeAfterStopCallbacks(): void
+    {
+        if ($this->callbacksExecuted) {
+            return;
+        }
+
+        $this->callbacksExecuted = true;
+
+        foreach ($this->afterStopCallbacks as $callback) {
+            try {
+                $callback();
+            } catch (\Throwable $e) {
+                \error_log("Ошибка выполнения after-stop колбэка: " . $e->getMessage());
+            }
+        }
+    }
+
 
     private function executeWithSignalHandling(): void
     {
@@ -95,15 +104,6 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
         } finally {
             $this->processManager->dispatchSignals();
         }
-    }
-
-    /**
-     * @psalm-param positive-int $cloneNumber
-     */
-    public function pid(int $cloneNumber = 0): ?int
-    {
-        $cloneNumber = $cloneNumber ?: $this->getRunningCloneNumber();
-        return $this->getPidStorage()->get($cloneNumber);
     }
 
     /**
@@ -120,28 +120,40 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
     }
 
     /**
-     * @psalm-param positive-int $number
      * @throws \Exception
      */
-    public function shutdownHandler(int $number): void
+    public function shutdownHandler(): void
     {
-        $this->getPidStorage()->remove($number);
+        if (!$this->callbacksExecuted) {
+            \error_log("Экстренное выполнение after-stop колбэков в shutdown handler");
+            $this->executeAfterStopCallbacks();
+        }
     }
 
     public function signalHandler(int $signo): void
     {
         switch ($signo) {
             case \SIGTERM:
-                $this->stopHandler();
+                // Немедленная остановка
+                $this->terminateHandler();
+                break;
+            case \SIGUSR1:
+                // Инициализация остановки работы процесса
+                $this->initGracefulShutdown();
                 break;
         }
     }
 
-    protected function stopHandler(?callable $afterStop = null): void
+    #[NoReturn]
+    public function terminateHandler(): void
     {
-        if ($afterStop !== null) {
-            $this->afterStopHandlers[] = $afterStop;
-        }
+        $this->executeAfterStopCallbacks();
+        exit(0);
+    }
+
+    public function addAfterStopCallback(callable $afterStop): void
+    {
+        $this->afterStopCallbacks[] = $afterStop;
     }
 
     /**
@@ -154,17 +166,11 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
 
     private function getDefaultTitle(): string
     {
-        $className = $this->nameProcess ?? \get_class($this);
+        $className = $this->nameProcess ?: static::class;
         $paramsString = $this->paramsToString();
         $title = $className . $paramsString;
 
-        // Проверяем, что заголовок не пустой после обрезки пробелов
-        $trimmedTitle = \trim($title);
-        if (empty($trimmedTitle)) {
-            return 'ForkerProcess';
-        }
-
-        return $title;
+        return \trim($title);
     }
 
     protected function getParamsWithoutExclude(): array
@@ -197,23 +203,13 @@ abstract class Process implements Forkable, Cloneable, Unique, PidAware
         ), " \t\n\r,") . ']');
     }
 
-    /**
-     * Prepare to execute (for example, db connection to use in new thread)
-     */
+    abstract protected function configure(array $params): void;
+
     abstract protected function prepare(): void;
 
-    /**
-     * Cleanup resources after process execution (for example, temporary files, connections)
-     */
     abstract protected function cleanup(): void;
 
-    /**
-     * Base logic of the process
-     */
     abstract protected function execute(): void;
 
-    /**
-     * Storage for process pid
-     */
-    abstract protected function getPidStorage(): PidStorage;
+    abstract protected function initGracefulShutdown(): void;
 }

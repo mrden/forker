@@ -3,12 +3,10 @@
 namespace Mrden\Forker\Process;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Traits\FilePidStorageTrait;
 use Mrden\Forker\Traits\SimpleProcessTrait;
 
 final class CallableProcess extends Process
 {
-    use FilePidStorageTrait;
     use SimpleProcessTrait;
 
     /**
@@ -24,13 +22,11 @@ final class CallableProcess extends Process
 
     public function id(): string
     {
-        // Сначала пробуем создать стабильный ID на основе содержимого
         $stableId = $this->tryCreateStableId();
         if ($stableId !== null) {
             return $stableId;
         }
 
-        // Fallback к уникальному ID
         return $this->fallbackId();
     }
 
@@ -46,23 +42,18 @@ final class CallableProcess extends Process
                 return null;
             }
 
-            // Читаем исходный код замыкания
             $lines = \file($fileName, FILE_IGNORE_NEW_LINES);
             $closureLines = \array_slice($lines, $startLine - 1, $endLine - $startLine + 1);
             $code = \implode("\n", $closureLines);
 
-            // Извлекаем только содержимое функции (между фигурными скобками)
             $functionBody = $this->extractFunctionBody($code);
 
-            // Если не удалось извлечь тело функции, используем весь код
             if ($functionBody === null) {
                 $functionBody = $code;
             }
 
-            // Нормализуем код для сравнения
             $normalizedCode = $this->normalizeClosureCode($functionBody);
 
-            // Создаем отпечаток на основе нормализованного кода + параметров
             $fingerprint = [
                 'code' => $normalizedCode,
                 'params' => $this->getParametersSignature($reflection),
@@ -73,6 +64,7 @@ final class CallableProcess extends Process
             return \md5(\get_class($this) . $identifier . \serialize($this->getParamsWithoutExclude()));
 
         } catch (\Exception $e) {
+            // todo: logging or ... ?
             return null;
         }
     }

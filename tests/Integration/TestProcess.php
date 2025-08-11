@@ -3,8 +3,6 @@
 namespace Tests\Integration;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Storage\FilePidStorage;
-use Mrden\Forker\Contracts\PidStorage;
 
 class TestProcess extends Process
 {
@@ -47,15 +45,9 @@ class TestProcess extends Process
         \file_put_contents($this->logFile, "Process {$pid} finished at " . \date('Y-m-d H:i:s') . PHP_EOL, FILE_APPEND);
     }
 
-    protected function stopHandler(?callable $afterStop = null): void
+    protected function initGracefulShutdown(): void
     {
         $this->shouldExit = true;
-        parent::stopHandler($afterStop);
-    }
-
-    protected function getPidStorage(): PidStorage
-    {
-        return new FilePidStorage($this, \sys_get_temp_dir() . '/forker_test_pids');
     }
 
     public function setMaxCloneCount(int $count): void
@@ -71,7 +63,7 @@ class TestProcess extends Process
     public function cleanupLogFile(): void
     {
         if (\file_exists($this->logFile)) {
-            \unlink($this->logFile);
+            //\unlink($this->logFile);
         }
     }
 

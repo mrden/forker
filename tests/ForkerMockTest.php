@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Mrden\Forker\Forker;
+use Mrden\Forker\Storage\FilePidStorage;
 use Tests\Mock\MockProcessManager;
 use PHPUnit\Framework\TestCase;
 use Tests\Mock\MockProcess;
@@ -11,16 +12,18 @@ class ForkerMockTest extends TestCase
 {
     private MockProcessManager $mockProcessManager;
     private MockProcess $mockProcess;
+    private FilePidStorage $pidStorage;
 
     protected function setUp(): void
     {
         $this->mockProcessManager = new MockProcessManager();
         $this->mockProcess = new MockProcess();
+        $this->pidStorage = new FilePidStorage($this->mockProcess);
     }
 
     public function testRunProcess(): void
     {
-        $forker = new Forker($this->mockProcess, $this->mockProcessManager);
+        $forker = new Forker($this->mockProcess, $this->pidStorage, $this->mockProcessManager);
         $pids = $forker->run();
 
         // Проверяем, что был создан один процесс
@@ -31,13 +34,13 @@ class ForkerMockTest extends TestCase
         $this->assertTrue($this->mockProcessManager->isProcessRunning($pids[0]));
 
         // Проверяем, что PID был сохранен в процессе
-        $this->assertEquals($pids[0], $this->mockProcess->pid(1));
+        $this->assertEquals($pids[0], $this->pidStorage->get(1));
     }
 
     public function testRunMultipleProcesses(): void
     {
         $this->mockProcess->setMaxCloneCount(3);
-        $forker = new Forker($this->mockProcess, $this->mockProcessManager);
+        $forker = new Forker($this->mockProcess, $this->pidStorage, $this->mockProcessManager);
         $pids = $forker->run(3);
 
         // Проверяем, что были созданы три процесса
@@ -49,14 +52,14 @@ class ForkerMockTest extends TestCase
         }
 
         // Проверяем, что PID были сохранены в процессе
-        $this->assertEquals($pids[0], $this->mockProcess->pid(1));
-        $this->assertEquals($pids[1], $this->mockProcess->pid(2));
-        $this->assertEquals($pids[2], $this->mockProcess->pid(3));
+        $this->assertEquals($pids[0], $this->pidStorage->get(1));
+        $this->assertEquals($pids[1], $this->pidStorage->get(2));
+        $this->assertEquals($pids[2], $this->pidStorage->get(3));
     }
 
     public function testStopProcess(): void
     {
-        $forker = new Forker($this->mockProcess, $this->mockProcessManager);
+        $forker = new Forker($this->mockProcess, $this->pidStorage, $this->mockProcessManager);
         $pids = $forker->run();
 
         $this->assertTrue($this->mockProcessManager->isProcessRunning($pids[0]));
@@ -70,7 +73,7 @@ class ForkerMockTest extends TestCase
 
     public function testRestartProcess(): void
     {
-        $forker = new Forker($this->mockProcess, $this->mockProcessManager);
+        $forker = new Forker($this->mockProcess, $this->pidStorage, $this->mockProcessManager);
         $originalPids = $forker->run();
 
         // Проверяем, что процесс запущен
@@ -90,7 +93,7 @@ class ForkerMockTest extends TestCase
     {
         // Устанавливаем режим эмуляции дочернего процесса
         $this->mockProcessManager->emulateChildProcess(true);
-        $forker = new Forker($this->mockProcess, $this->mockProcessManager);
+        $forker = new Forker($this->mockProcess, $this->pidStorage, $this->mockProcessManager);
 
         // Перехватываем exit() в дочернем процессе
         $this->mockProcess->setExitCallback(function (): void {
@@ -113,6 +116,6 @@ class ForkerMockTest extends TestCase
         $this->expectException(\Mrden\Forker\Exceptions\ForkException::class);
         $this->expectExceptionMessage('Forker is only used in cli mode.');
 
-        new Forker($this->mockProcess, $this->mockProcessManager);
+        new Forker($this->mockProcess, $this->pidStorage, $this->mockProcessManager);
     }
 }

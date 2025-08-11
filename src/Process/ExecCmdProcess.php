@@ -3,12 +3,9 @@
 namespace Mrden\Forker\Process;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Traits\FilePidStorageTrait;
 
 class ExecCmdProcess extends Process
 {
-    use FilePidStorageTrait;
-
     private string $command;
 
     protected function configure(array $params): void
@@ -34,5 +31,9 @@ class ExecCmdProcess extends Process
     protected function execute(): void
     {
         \exec($this->command);
+    }
+
+    protected function initGracefulShutdown(): void
+    {
     }
 }

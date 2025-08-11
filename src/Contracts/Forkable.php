@@ -9,8 +9,7 @@ interface Forkable
      */
     public function run(int $cloneNumber = 1): void;
 
-    /**
-     * @psalm-param positive-int $cloneNumber
-     */
-    public function pid(int $cloneNumber = 0): ?int;
+    public function signalHandler(int $signo): void;
+
+    public function addAfterStopCallback(callable $afterStop): void;
 }

@@ -4,6 +4,7 @@ namespace Tests;
 
 use Mrden\Forker\Forker;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
+use Mrden\Forker\Storage\FilePidStorage;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Tests\Integration\TestProcess;
@@ -42,9 +43,10 @@ class ForkerStressIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 10]);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         $allPids = [];
 
@@ -78,11 +80,12 @@ class ForkerStressIntegrationTest extends TestCase
     {
         $process = new TestProcess(['run_duration' => 10]);
         $processManager = new PosixProcessManager();
+        $pidStorage = new FilePidStorage($process);
         $processCount = 5;
         $process->setMaxCloneCount($processCount);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $processManager);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         // Запускаем максимальное количество процессов
         $pids = $forker->run($processCount);
@@ -92,7 +95,7 @@ class ForkerStressIntegrationTest extends TestCase
         // Проверяем, что все процессы запущены
         foreach ($pids as $i => $pid) {
             $this->assertTrue($processManager->isProcessRunning($pid), "Process {$pid} should be running");
-            $storedPid = $process->pid($i + 1);
+            $storedPid = $pidStorage->get($i + 1);
             $this->assertEquals($pid, $storedPid);
         }
 
@@ -144,7 +147,8 @@ class ForkerStressIntegrationTest extends TestCase
 
         $this->createdProcesses[] = $process;
         $processManager = new PosixProcessManager();
-        $forker = new Forker($process, $processManager);
+        $pidStorage = new FilePidStorage($process);
+        $forker = new Forker($process, $pidStorage, $processManager);
 
         $pids = $forker->run();
         $pid = $pids[0];
