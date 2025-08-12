@@ -192,7 +192,7 @@ class ForkerIntegrationTest extends TestCase
 
     public function testSignalHandling(): void
     {
-        $process = new TestProcess(['run_duration' => 30, 'log_file' => __DIR__ . '/it.log']);
+        $process = new TestProcess(['run_duration' => 30]);
         $processManager = new PosixProcessManager();
         $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
