@@ -3,8 +3,6 @@
 namespace Tests\Integration;
 
 use Mrden\Forker\Contracts\Process;
-use Mrden\Forker\Storage\FilePidStorage;
-use Mrden\Forker\Contracts\PidStorage;
 
 class ParameterTestProcess extends Process
 {

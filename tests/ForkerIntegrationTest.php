@@ -4,8 +4,6 @@ namespace Tests;
 
 use Mrden\Forker\Contracts\Process;
 use Mrden\Forker\Forker;
-use Mrden\Forker\ProcessManager\PosixProcessManager;
-use Mrden\Forker\Storage\FilePidStorage;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Tests\Integration\TestProcess;
@@ -52,11 +50,9 @@ class ForkerIntegrationTest extends TestCase
     public function testBasicForkAndStop(): void
     {
         $process = new TestProcess(['run_duration' => 30]); // Долгий процесс
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         // Запускаем процесс
         $pids = $forker->run();
@@ -66,9 +62,9 @@ class ForkerIntegrationTest extends TestCase
         $this->assertGreaterThan(0, $pids[0]);
 
         // Проверяем, что процесс действительно запущен
-        $pid = $pidStorage->get(1);
+        $pid = $process->getPidStorage()->get(1);
         $this->assertEquals($pids[0], $pid);
-        $this->assertTrue($processManager->isProcessRunning($pid), 'Process should be running');
+        $this->assertTrue($process->getProcessManager()->isProcessRunning($pid), 'Process should be running');
 
         // Ждем немного, чтобы процесс успел записать в лог
         \sleep(2);
@@ -83,7 +79,7 @@ class ForkerIntegrationTest extends TestCase
         $this->assertEquals($pids, $stoppedPids);
 
         // Проверяем, что процесс завершился
-        $this->assertTrue($processManager->waitForProcessStop($pid, 5), 'Process should be stopped');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($pid, 5), 'Process should be stopped');
 
         // Проверяем лог завершения
         $finalLog = $process->getLogContents();
@@ -93,11 +89,9 @@ class ForkerIntegrationTest extends TestCase
     public function testMultipleProcesses(): void
     {
         $process = new TestProcess(['run_duration' => 30]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         // Запускаем 3 процесса
         $pids = $forker->run(3);
@@ -108,10 +102,10 @@ class ForkerIntegrationTest extends TestCase
         foreach ($pids as $i => $pid) {
             $this->assertIsInt($pid);
             $this->assertGreaterThan(0, $pid);
-            $this->assertTrue($processManager->isProcessRunning($pid), "Process {$pid} should be running");
+            $this->assertTrue($process->getProcessManager()->isProcessRunning($pid), "Process {$pid} should be running");
 
             // Проверяем, что PID корректно сохранен
-            $storedPid = $pidStorage->get($i + 1);
+            $storedPid = $process->getPidStorage()->get($i + 1);
             $this->assertEquals($pid, $storedPid);
         }
 
@@ -123,24 +117,22 @@ class ForkerIntegrationTest extends TestCase
 
         // Проверяем, что все процессы остановлены
         foreach ($pids as $pid) {
-            $this->assertTrue($processManager->waitForProcessStop($pid, 15), "Process {$pid} should be stopped");
+            $this->assertTrue($process->getProcessManager()->waitForProcessStop($pid, 15), "Process {$pid} should be stopped");
         }
     }
 
     public function testRestartProcess(): void
     {
         $process = new TestProcess(['run_duration' => 30]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         // Запускаем процесс
         $originalPids = $forker->run();
         $originalPid = $originalPids[0];
 
-        $this->assertTrue($processManager->isProcessRunning($originalPid), 'Original process should be running');
+        $this->assertTrue($process->getProcessManager()->isProcessRunning($originalPid), 'Original process should be running');
 
         // Перезапускаем процесс
         $newPids = $forker->restart(1);
@@ -149,63 +141,59 @@ class ForkerIntegrationTest extends TestCase
         $this->assertNotEquals($originalPid, $newPid, 'New process should have different PID');
 
         // Проверяем, что старый процесс остановлен, а новый запущен
-        $this->assertTrue($processManager->waitForProcessStop($originalPid, 1), 'Original process should be stopped');
-        $this->assertTrue($processManager->isProcessRunning($newPid), 'New process should be running');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($originalPid, 1), 'Original process should be stopped');
+        $this->assertTrue($process->getProcessManager()->isProcessRunning($newPid), 'New process should be running');
 
         // Проверяем, что PID обновился в storage
-        $storedPid = $pidStorage->get(1);
+        $storedPid = $process->getPidStorage()->get(1);
         $this->assertEquals($newPid, $storedPid);
 
         // Останавливаем новый процесс
         $forker->stop(1);
-        $this->assertTrue($processManager->waitForProcessStop($newPid, 15), 'New process should be stopped');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($newPid, 15), 'New process should be stopped');
     }
 
     public function testProcessCrashHandling(): void
     {
         $process = new TestProcess(['run_duration' => 2]); // Короткий процесс
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         $pids = $forker->run();
         $pid = $pids[0];
 
-        $this->assertTrue($processManager->isProcessRunning($pid), 'Process should be running');
+        $this->assertTrue($process->getProcessManager()->isProcessRunning($pid), 'Process should be running');
 
         // Процесс должен завершиться сам
-        $this->assertTrue($processManager->waitForProcessStop($pid, 3), 'Process should have finished naturally');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($pid, 3), 'Process should have finished naturally');
 
         // Попытка перезапуска должна создать новый процесс
         $newPids = $forker->restart(1);
         $newPid = $newPids[0];
 
         $this->assertNotEquals($pid, $newPid);
-        $this->assertTrue($processManager->isProcessRunning($newPid), 'New process should be running');
+        $this->assertTrue($process->getProcessManager()->isProcessRunning($newPid), 'New process should be running');
 
         // Очистка
         $forker->stop(1);
-        $this->assertTrue($processManager->waitForProcessStop($newPid, 15), 'New process should be stopped');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($newPid, 15), 'New process should be stopped');
     }
 
     public function testSignalHandling(): void
     {
         $process = new TestProcess(['run_duration' => 30]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         $pids = $forker->run();
         $pid = $pids[0];
 
         // Просим процесс завершиться
-        $this->assertTrue($processManager->requestGracefulShutdown($pid));
+        $this->assertTrue($process->getProcessManager()->requestGracefulShutdown($pid));
         // Процесс должен завершиться
-        $this->assertTrue($processManager->waitForProcessStop($pid, 5), 'Process should respond to SIGTERM');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($pid, 5), 'Process should respond to SIGTERM');
 
         // Проверяем лог
         $logContents = $process->getLogContents();
@@ -215,11 +203,9 @@ class ForkerIntegrationTest extends TestCase
     public function testWaitForProcessStop(): void
     {
         $process = new TestProcess(['run_duration' => 30]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         $pids = $forker->run();
         $pid = $pids[0];
@@ -237,21 +223,19 @@ class ForkerIntegrationTest extends TestCase
 
         $newPid = $newPids[0];
         $this->assertNotEquals($pid, $newPid);
-        $this->assertTrue($processManager->waitForProcessStop($pid, 5));
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($pid, 5));
 
         // Очистка
         $forker->stop(1);
-        $this->assertTrue($processManager->waitForProcessStop($newPid, 5), 'New process should be stopped');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($newPid, 5), 'New process should be stopped');
     }
 
     public function testProcessMemoryAndCleanup(): void
     {
         $process = new TestProcess(['run_duration' => 5]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         // Запускаем и сразу останавливаем несколько раз
         for ($i = 0; $i < 3; $i++) {
@@ -260,8 +244,8 @@ class ForkerIntegrationTest extends TestCase
 
             // Активно ждём завершения процессов
             foreach ($pids as $pid) {
-                $processManager->waitForProcessStop($pid, 10); // Максимум 10 секунд ожидания
-                $this->assertFalse($processManager->isProcessRunning($pid), "Process {$pid} should be cleaned up");
+                $process->getProcessManager()->waitForProcessStop($pid, 10); // Максимум 10 секунд ожидания
+                $this->assertFalse($process->getProcessManager()->isProcessRunning($pid), "Process {$pid} should be cleaned up");
             }
         }
 

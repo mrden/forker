@@ -27,9 +27,12 @@ abstract class MultiThreadHandleProcess extends Process implements SpecificCount
     /**
      * @throws \Exception
      */
-    public function __construct(array $params = [])
-    {
-        parent::__construct($params);
+    public function __construct(
+        array $params = [],
+        ?ProcessManagerInterface $processManager = null,
+        ?string $pidStorageClassName = null
+    ) {
+        parent::__construct($params, $processManager, $pidStorageClassName);
         $this->countCpu = SysInfo::numCpu() ?? 2;
     }
 

@@ -4,41 +4,47 @@
 use Mrden\Forker\Contracts\Forkable;
 use Mrden\Forker\Forker;
 
-// Detect autoload location
-$autoload = [
-    __DIR__ . '/../vendor/autoload.php', // The forker located in development.
-    __DIR__ . '/../../../autoload.php', // The forker located at "vendor/mrden/forker/bin".
-    __DIR__ . '/../autoload.php', // The forker located at "vendor/bin".
-];
-$includes = [
-    __DIR__ . '/..',
-    __DIR__ . '/../../../mrden/forker',
-    __DIR__ . '/../mrden/forker',
-];
-$includePath = false;
-for ($i = 0; $i < \count($autoload); $i++) {
-    if (\file_exists($autoload[$i]) && \is_dir($includes[$i])) {
-        require $autoload[$i];
-        $includePath = $includes[$i];
-        break;
-    }
-}
-if (empty($includePath)) {
-    \fwrite(\STDERR, "Error: The `autoload.php` file not found in:" . \PHP_EOL);
+if (isset($GLOBALS['_composer_autoload_path'])) {
+    require $GLOBALS['_composer_autoload_path'];
+} else {
+    // Detect autoload location
+    $autoload = [
+        __DIR__ . '/../vendor/autoload.php', // The forker located in development.
+        __DIR__ . '/../../../autoload.php', // The forker located at "vendor/mrden/forker/bin".
+        __DIR__ . '/../autoload.php', // The forker located at "vendor/bin".
+    ];
+    $includes = [
+        __DIR__ . '/..',
+        __DIR__ . '/../../../mrden/forker',
+        __DIR__ . '/../mrden/forker',
+    ];
+    $includePath = false;
     for ($i = 0; $i < \count($autoload); $i++) {
-        $a = \file_exists($autoload[$i]) ? 'true' : 'false';
-        $b = \is_dir($includes[$i]) ? 'true' : 'false';
-        \fwrite(\STDERR, "  - file_exists($autoload[$i]) = $a" . \PHP_EOL);
-        \fwrite(\STDERR, "    is_dir($includes[$i]) = $b") . \PHP_EOL;
+        if (\file_exists($autoload[$i]) && \is_dir($includes[$i])) {
+            require $autoload[$i];
+            $includePath = $includes[$i];
+            break;
+        }
     }
-    exit(1);
+    if (empty($includePath)) {
+        \fwrite(\STDERR, "Error: The `autoload.php` file not found in:" . \PHP_EOL);
+        for ($i = 0; $i < \count($autoload); $i++) {
+            $a = \file_exists($autoload[$i]) ? 'true' : 'false';
+            $b = \is_dir($includes[$i]) ? 'true' : 'false';
+            \fwrite(\STDERR, "  - file_exists($autoload[$i]) = $a" . \PHP_EOL);
+            \fwrite(\STDERR, "    is_dir($includes[$i]) = $b") . \PHP_EOL;
+        }
+        exit(1);
+    }
 }
+
 $processClassName = '';
 $processParams = [];
 $count = null;
 $cloneNumber = null;
 $stop = false;
 $restart = false;
+
 foreach ($argv as $i => $arg) {
     if (\preg_match('/^--process=(?<process>.+)$/', $arg, $match)) {
         $processClassName = $match['process'];

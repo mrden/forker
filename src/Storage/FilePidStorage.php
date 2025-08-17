@@ -7,7 +7,7 @@ use Mrden\Forker\Contracts\Unique;
 
 final class FilePidStorage implements PidStorage
 {
-    private Unique $unique;
+    private string $uniqId;
     private string $dirname;
 
     public function __construct(Unique $unique, ?string $dirname = null)
@@ -17,7 +17,7 @@ final class FilePidStorage implements PidStorage
         }
         $dirname = $dirname ?? \sys_get_temp_dir();
         $this->dirname = $dirname;
-        $this->unique = $unique;
+        $this->uniqId = $unique->id();
     }
 
     public function get(int $index): ?int
@@ -46,7 +46,7 @@ final class FilePidStorage implements PidStorage
 
     private function fileName(int $key): string
     {
-        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->unique->id()) . '/';
+        $dir = \rtrim($this->dirname, '/') . '/' . 'forker' . '/' .  $this->slugify($this->uniqId) . '/';
         if (!\file_exists($dir)) {
             \mkdir($dir, 0775, true);
         }

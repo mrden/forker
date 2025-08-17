@@ -3,6 +3,7 @@
 namespace Mrden\Forker\Process;
 
 use Mrden\Forker\Contracts\Process;
+use Mrden\Forker\Contracts\ProcessManagerInterface;
 use Mrden\Forker\Traits\SimpleProcessTrait;
 
 final class CallableProcess extends Process
@@ -14,10 +15,14 @@ final class CallableProcess extends Process
      */
     private \Closure $logic;
 
-    public function __construct(\Closure $logic, array $params = [])
-    {
+    public function __construct(
+        \Closure $logic,
+        array $params = [],
+        ?ProcessManagerInterface $processManager = null,
+        ?string $pidStorageClassName = null
+    ) {
         $this->logic = $logic;
-        parent::__construct($params);
+        parent::__construct($params, $processManager, $pidStorageClassName);
     }
 
     public function id(): string
@@ -114,5 +119,9 @@ final class CallableProcess extends Process
     protected function execute(): void
     {
         \call_user_func($this->logic, $this);
+    }
+
+    protected function initGracefulShutdown(): void
+    {
     }
 }

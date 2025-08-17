@@ -63,7 +63,7 @@ class TestProcess extends Process
     public function cleanupLogFile(): void
     {
         if (\file_exists($this->logFile)) {
-            //\unlink($this->logFile);
+            \unlink($this->logFile);
         }
     }
 

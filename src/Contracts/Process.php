@@ -2,9 +2,11 @@
 
 namespace Mrden\Forker\Contracts;
 
-use JetBrains\PhpStorm\NoReturn;
 use Mrden\Forker\Exceptions\ForkException;
+use Mrden\Forker\Forker;
+use Mrden\Forker\Process\RestartWithForkerBinaryProcess;
 use Mrden\Forker\ProcessManager\PosixProcessManager;
+use Mrden\Forker\Storage\FilePidStorage;
 
 abstract class Process implements Forkable, Cloneable, Unique
 {
@@ -17,6 +19,7 @@ abstract class Process implements Forkable, Cloneable, Unique
      * @var array
      */
     protected array $params;
+    protected array $excludeParamsKey = ['pid-storage-class', 'process-manager-class'];
     /**
      * Number running clone
      * @psalm-var positive-int
@@ -26,8 +29,10 @@ abstract class Process implements Forkable, Cloneable, Unique
      * @var callable[]
      */
     private array $afterStopCallbacks = [];
-
-    protected array $excludeParamsKey = [];
+    /**
+     * @var callable[]
+     */
+    private array $afterShutdownCallbacks = [];
 
     private bool $callbacksExecuted = false;
     /**
@@ -35,23 +40,47 @@ abstract class Process implements Forkable, Cloneable, Unique
      */
     protected string|null $nameProcess = null;
 
-    protected ProcessManagerInterface $processManager;
+    protected PosixProcessManagerInterface $processManager;
+    protected PidStorage $pidStorage;
 
     /**
-     * @throws \Exception
+     * @param class-string<PidStorage>|null $pidStorageClassName
      */
-    public function __construct(array $params = [], ?ProcessManagerInterface $processManager = null)
-    {
+    public function __construct(
+        array $params = [],
+        ?ProcessManagerInterface $processManager = null,
+        ?string $pidStorageClassName = null
+    ) {
         $this->params = $params;
-        $this->processManager = $processManager ?? new PosixProcessManager();
+        $pidStorageClassName = $pidStorageClassName ?? ($params['pid-storage-class'] ?? FilePidStorage::class);
+        $this->pidStorage = \is_subclass_of($pidStorageClassName, PidStorage::class)
+            ? new $pidStorageClassName($this)
+            : new FilePidStorage($this);
+        if (!$processManager) {
+            $processManagerClassname = $params['process-manager-class'] ?? PosixProcessManager::class;
+            $processManager = \is_subclass_of($processManagerClassname, PosixProcessManagerInterface::class)
+                ? new $processManagerClassname()
+                : new PosixProcessManager();
+        }
+        $this->processManager = $processManager;
         $this->configure($params);
+    }
+
+    public function getProcessManager(): PosixProcessManagerInterface
+    {
+        return $this->processManager;
+    }
+
+    public function getPidStorage(): PidStorage
+    {
+        return $this->pidStorage;
     }
 
     /**
      * @psalm-param positive-int $cloneNumber
      * @throws ForkException
      */
-    public function run(int $cloneNumber = 1): void
+    public function run(int $cloneNumber): void
     {
         $this->runningCloneNumber = $cloneNumber;
 
@@ -79,6 +108,15 @@ abstract class Process implements Forkable, Cloneable, Unique
         }
     }
 
+    protected function initRestartMySelf(): void
+    {
+        $this->initGracefulShutdown();
+        $this->addAfterShutdownCallback(function (): void {
+            $forker = new Forker(new RestartWithForkerBinaryProcess($this));
+            $forker->run();
+        });
+    }
+
     private function executeAfterStopCallbacks(): void
     {
         if ($this->callbacksExecuted) {
@@ -96,13 +134,23 @@ abstract class Process implements Forkable, Cloneable, Unique
         }
     }
 
+    private function executeAfterShutdownCallbacks(): void
+    {
+        foreach ($this->afterShutdownCallbacks as $callback) {
+            try {
+                $callback();
+            } catch (\Throwable $e) {
+                \error_log("Ошибка выполнения after-shutdown колбэка: " . $e);
+            }
+        }
+    }
 
     private function executeWithSignalHandling(): void
     {
         try {
             $this->execute();
         } finally {
-            $this->processManager->dispatchSignals();
+            $this->getProcessManager()->dispatchSignals();
         }
     }
 
@@ -125,30 +173,28 @@ abstract class Process implements Forkable, Cloneable, Unique
     public function shutdownHandler(): void
     {
         if (!$this->callbacksExecuted) {
-            \error_log("Экстренное выполнение after-stop колбэков в shutdown handler");
             $this->executeAfterStopCallbacks();
         }
+        $this->executeAfterShutdownCallbacks();
     }
 
     public function signalHandler(int $signo): void
     {
         switch ($signo) {
             case \SIGTERM:
+            case \SIGINT:
                 // Немедленная остановка
-                $this->terminateHandler();
-                break;
+                $this->executeAfterStopCallbacks();
+                exit(0);
             case \SIGUSR1:
                 // Инициализация остановки работы процесса
                 $this->initGracefulShutdown();
                 break;
+            case \SIGUSR2:
+                // Инициализация перезапуска процесса
+                $this->initRestartMySelf();
+                break;
         }
-    }
-
-    #[NoReturn]
-    public function terminateHandler(): void
-    {
-        $this->executeAfterStopCallbacks();
-        exit(0);
     }
 
     public function addAfterStopCallback(callable $afterStop): void
@@ -156,15 +202,20 @@ abstract class Process implements Forkable, Cloneable, Unique
         $this->afterStopCallbacks[] = $afterStop;
     }
 
+    public function addAfterShutdownCallback(callable $afterShutdown): void
+    {
+        $this->afterShutdownCallbacks[] = $afterShutdown;
+    }
+
     /**
      * @psalm-return positive-int
      */
-    protected function getRunningCloneNumber(): int
+    final public function getRunningCloneNumber(): int
     {
         return $this->runningCloneNumber;
     }
 
-    private function getDefaultTitle(): string
+    final protected function getDefaultTitle(): string
     {
         $className = $this->nameProcess ?: static::class;
         $paramsString = $this->paramsToString();
@@ -173,7 +224,7 @@ abstract class Process implements Forkable, Cloneable, Unique
         return \trim($title);
     }
 
-    protected function getParamsWithoutExclude(): array
+    final protected function getParamsWithoutExclude(): array
     {
         $params = [];
         foreach ($this->params as $key => $param) {
@@ -185,7 +236,7 @@ abstract class Process implements Forkable, Cloneable, Unique
         return $params;
     }
 
-    protected function paramsToString(): string
+    final protected function paramsToString(): string
     {
         $params = [];
         foreach ($this->getParamsWithoutExclude() as $key => $param) {

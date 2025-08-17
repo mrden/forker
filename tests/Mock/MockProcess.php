@@ -4,6 +4,8 @@ namespace Tests\Mock;
 
 use Mrden\Forker\Contracts\Cloneable;
 use Mrden\Forker\Contracts\Forkable;
+use Mrden\Forker\Contracts\PidStorage;
+use Mrden\Forker\Contracts\ProcessManagerInterface;
 use Mrden\Forker\Contracts\Unique;
 
 /**
@@ -24,40 +26,12 @@ class MockProcess implements Forkable, Cloneable, Unique
     private $exitCallback = null;
 
     private MockPidStorage $storage;
+    private MockProcessManager $processManager;
 
     public function __construct()
     {
         $this->storage = new MockPidStorage();
-    }
-
-    /**
-     * Уведомление от Forker о назначенном PID (в родительском процессе)
-     */
-    public function notifyPid(int $cloneNumber, int $pid): void
-    {
-        $this->pids[$cloneNumber] = $pid;
-        $this->storage->save($cloneNumber, $pid);
-    }
-
-    /**
-     * Получает PID процесса по его номеру
-     */
-    public function pid(int $cloneNumber = 0): ?int
-    {
-        // Сначала проверяем в хранилище
-        $pidFromStorage = $this->storage->get($cloneNumber);
-        if ($pidFromStorage !== null) {
-            return $pidFromStorage;
-        }
-
-        // Если в хранилище нет, возвращаем из внутреннего массива
-        if (isset($this->pids[$cloneNumber])) {
-            // Сохраняем в хранилище для следующих запросов
-            $this->storage->save($cloneNumber, $this->pids[$cloneNumber]);
-            return $this->pids[$cloneNumber];
-        }
-
-        return null;
+        $this->processManager = new MockProcessManager();
     }
 
     /**
@@ -128,5 +102,19 @@ class MockProcess implements Forkable, Cloneable, Unique
 
     public function addAfterStopCallback(callable $afterStop): void
     {
+    }
+
+    public function addAfterShutdownCallback(callable $afterShutdown): void
+    {
+    }
+
+    public function getProcessManager(): ProcessManagerInterface
+    {
+        return $this->processManager;
+    }
+
+    public function getPidStorage(): PidStorage
+    {
+        return $this->storage;
     }
 }

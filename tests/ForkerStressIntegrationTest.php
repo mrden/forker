@@ -3,8 +3,6 @@
 namespace Tests;
 
 use Mrden\Forker\Forker;
-use Mrden\Forker\ProcessManager\PosixProcessManager;
-use Mrden\Forker\Storage\FilePidStorage;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Tests\Integration\TestProcess;
@@ -42,11 +40,9 @@ class ForkerStressIntegrationTest extends TestCase
     public function testRapidRestarts(): void
     {
         $process = new TestProcess(['run_duration' => 10]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         $allPids = [];
 
@@ -57,7 +53,7 @@ class ForkerStressIntegrationTest extends TestCase
 
             $this->assertIsInt($pid);
             $this->assertGreaterThan(0, $pid);
-            $this->assertTrue($processManager->isProcessRunning($pid), "Process {$pid} should be running after restart {$i}");
+            $this->assertTrue($process->getProcessManager()->isProcessRunning($pid), "Process {$pid} should be running after restart {$i}");
 
             $allPids[] = $pid;
         }
@@ -69,8 +65,8 @@ class ForkerStressIntegrationTest extends TestCase
         $finalPid = \end($allPids);
         $forker->stop(1);
 
-        $this->assertTrue($processManager->waitForProcessStop($finalPid, 15));
-        $this->assertFalse($processManager->isProcessRunning($finalPid), 'Final process should be stopped');
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($finalPid, 15));
+        $this->assertFalse($process->getProcessManager()->isProcessRunning($finalPid), 'Final process should be stopped');
     }
 
     /**
@@ -79,13 +75,11 @@ class ForkerStressIntegrationTest extends TestCase
     public function testMaxProcesses(): void
     {
         $process = new TestProcess(['run_duration' => 10]);
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
         $processCount = 5;
         $process->setMaxCloneCount($processCount);
         $this->createdProcesses[] = $process;
 
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         // Запускаем максимальное количество процессов
         $pids = $forker->run($processCount);
@@ -94,8 +88,8 @@ class ForkerStressIntegrationTest extends TestCase
 
         // Проверяем, что все процессы запущены
         foreach ($pids as $i => $pid) {
-            $this->assertTrue($processManager->isProcessRunning($pid), "Process {$pid} should be running");
-            $storedPid = $pidStorage->get($i + 1);
+            $this->assertTrue($process->getProcessManager()->isProcessRunning($pid), "Process {$pid} should be running");
+            $storedPid = $process->getPidStorage()->get($i + 1);
             $this->assertEquals($pid, $storedPid);
         }
 
@@ -107,11 +101,11 @@ class ForkerStressIntegrationTest extends TestCase
 
         // Проверяем, что старые процессы остановлены, новые запущены
         foreach ($pids as $oldPid) {
-            $this->assertFalse($processManager->isProcessRunning($oldPid), "Old process {$oldPid} should be stopped");
+            $this->assertFalse($process->getProcessManager()->isProcessRunning($oldPid), "Old process {$oldPid} should be stopped");
         }
 
         foreach ($newPids as $newPid) {
-            $this->assertTrue($processManager->isProcessRunning($newPid), "New process {$newPid} should be running");
+            $this->assertTrue($process->getProcessManager()->isProcessRunning($newPid), "New process {$newPid} should be running");
         }
 
         // Все новые PID должны отличаться от старых
@@ -146,9 +140,7 @@ class ForkerStressIntegrationTest extends TestCase
         };
 
         $this->createdProcesses[] = $process;
-        $processManager = new PosixProcessManager();
-        $pidStorage = new FilePidStorage($process);
-        $forker = new Forker($process, $pidStorage, $processManager);
+        $forker = new Forker($process);
 
         $pids = $forker->run();
         $pid = $pids[0];
@@ -166,14 +158,14 @@ class ForkerStressIntegrationTest extends TestCase
         $this->assertLessThan(6, $endTime - $startTime, 'Forced termination should complete within reasonable time');
 
         // Старый процесс должен быть убит
-        $this->assertFalse($processManager->isProcessRunning($pid), 'Stubborn process should be force-killed');
+        $this->assertFalse($process->getProcessManager()->isProcessRunning($pid), 'Stubborn process should be force-killed');
 
         // Новый процесс должен работать
-        $this->assertTrue($processManager->isProcessRunning($newPid), 'New process should be running');
+        $this->assertTrue($process->getProcessManager()->isProcessRunning($newPid), 'New process should be running');
 
         // Очистка
         $stopPids = $forker->stop(1, null, 1, true);
         $this->assertEquals([$newPid], $stopPids);
-        $this->assertTrue($processManager->waitForProcessStop($newPid, 5));
+        $this->assertTrue($process->getProcessManager()->waitForProcessStop($newPid, 5));
     }
 }
