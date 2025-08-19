@@ -9,21 +9,36 @@ use Mrden\Forker\Contracts\SpecificCountCloneable;
 use Mrden\Forker\Contracts\Unique;
 use Mrden\Forker\Exceptions\ForkException;
 use Mrden\Forker\Exceptions\ProcessTimeoutException;
+use Mrden\Forker\Process\CallableProcess;
 
 final class Forker
 {
-    private Forkable|Unique $process;
+    private Forkable&Unique $process;
 
     /**
      * @throws ForkException
      */
-    public function __construct(Forkable|Unique $process)
+    public function __construct(Forkable&Unique $process)
     {
         if (!$process->getProcessManager()->isCli()) {
             throw new ForkException('Forker is only used in cli mode.');
         }
         $this->process = $process;
         $this->setupSignalHandlers();
+    }
+
+    /**
+     * @throws ForkException
+     */
+    public static function fork(mixed $process): array
+    {
+        if (\is_callable($process)) {
+            $process = new CallableProcess($process);
+        }
+        if (\is_subclass_of($process, Forkable::class) && \is_subclass_of($process, Unique::class)) {
+            return (new self($process))->run();
+        }
+        throw new \InvalidArgumentException('Forkable process must be callable or Forkable&Unique.');
     }
 
     private function setupSignalHandlers(): void
